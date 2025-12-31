@@ -45,6 +45,15 @@ class Settings(BaseSettings):
     # CORS settings (for development)
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+        """Parse CORS origins from comma-separated string or list."""
+        if isinstance(v, str):
+            # Handle comma-separated string from env var
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
     @field_validator("vaults_config", "data_dir", mode="before")
     @classmethod
     def convert_to_path(cls, v: str | Path) -> Path:
