@@ -19,7 +19,8 @@ RUN pnpm install --frozen-lockfile || pnpm install
 # Copy frontend source
 COPY frontend/ ./
 
-# Build the frontend
+# Build the frontend (increase Node.js memory limit for build)
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN pnpm build
 
 # ==============================================================================

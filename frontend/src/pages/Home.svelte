@@ -1,18 +1,6 @@
 <script lang="ts">
-	import { vault, activeVault, isAuthenticated } from '$lib/stores';
-	import { goto } from '$app/navigation';
-
-	// Redirect to login if not authenticated
-	$effect(() => {
-		if (!$isAuthenticated) {
-			goto('/login');
-		}
-	});
+	import { vault, activeVault } from '../lib/stores';
 </script>
-
-<svelte:head>
-	<title>Obsidian Web Reader</title>
-</svelte:head>
 
 <div class="mx-auto max-w-4xl">
 	<!-- Welcome Section -->
@@ -157,3 +145,4 @@
 		</ul>
 	</div>
 </div>
+

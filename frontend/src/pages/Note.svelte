@@ -1,22 +1,17 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { vault, isAuthenticated } from '$lib/stores';
-	import { goto } from '$app/navigation';
-	import { NoteContent } from '$lib/components';
+	import { push } from 'svelte-spa-router';
+	import { vault } from '../lib/stores';
+	import NoteContent from '../lib/components/NoteContent.svelte';
+
+	// Get note path from route params
+	let { params = {} }: { params?: { wild?: string } } = $props();
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	// Get the note path from the URL
-	let notePath = $derived($page.params.path);
-
-	// Load the note when path changes
+	// Load note when params change
 	$effect(() => {
-		if (!$isAuthenticated) {
-			goto('/login');
-			return;
-		}
-
+		const notePath = params.wild;
 		if (notePath) {
 			loadNote(notePath);
 		}
@@ -35,10 +30,6 @@
 		loading = false;
 	}
 </script>
-
-<svelte:head>
-	<title>{$vault.currentNote?.title || 'Note'} - Obsidian Reader</title>
-</svelte:head>
 
 {#if loading}
 	<div class="flex h-64 items-center justify-center">
@@ -88,7 +79,7 @@
 			<button
 				type="button"
 				class="mt-4 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/50"
-				onclick={() => goto('/')}
+				onclick={() => push('/')}
 			>
 				Back to Home
 			</button>

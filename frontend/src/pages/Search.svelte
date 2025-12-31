@@ -1,25 +1,22 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { searchApi, type SearchResult } from '$lib/api';
-	import { isAuthenticated } from '$lib/stores';
-	import { goto } from '$app/navigation';
+	import { querystring } from 'svelte-spa-router';
+	import { searchApi, type SearchResult } from '../lib/api';
 
 	let results = $state<SearchResult[]>([]);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 
-	// Get query from URL
-	let query = $derived($page.url.searchParams.get('q') || '');
+	// Parse query from URL querystring
+	let query = $derived(() => {
+		const params = new URLSearchParams($querystring || '');
+		return params.get('q') || '';
+	});
 
 	// Perform search when query changes
 	$effect(() => {
-		if (!$isAuthenticated) {
-			goto('/login');
-			return;
-		}
-
-		if (query) {
-			performSearch(query);
+		const q = query();
+		if (q) {
+			performSearch(q);
 		} else {
 			results = [];
 		}
@@ -42,23 +39,19 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Search: {query} - Obsidian Reader</title>
-</svelte:head>
-
 <div class="mx-auto max-w-3xl">
 	<!-- Search Header -->
 	<div class="mb-8">
 		<h1 class="text-2xl font-bold text-obsidian-900 dark:text-obsidian-50">
 			Search Results
 		</h1>
-		{#if query}
+		{#if query()}
 			<p class="mt-2 text-obsidian-600 dark:text-obsidian-400">
 				{#if loading}
-					Searching for "<span class="font-medium">{query}</span>"...
+					Searching for "<span class="font-medium">{query()}</span>"...
 				{:else}
 					Found {results.length} result{results.length !== 1 ? 's' : ''} for "<span
-						class="font-medium">{query}</span
+						class="font-medium">{query()}</span
 					>"
 				{/if}
 			</p>
@@ -96,7 +89,7 @@
 			</svg>
 			<p class="mt-2 text-red-600 dark:text-red-400">{error}</p>
 		</div>
-	{:else if results.length === 0 && query}
+	{:else if results.length === 0 && query()}
 		<!-- No Results -->
 		<div
 			class="rounded-xl bg-white p-8 text-center shadow-sm dark:bg-obsidian-800"
@@ -126,7 +119,7 @@
 		<div class="space-y-4">
 			{#each results as result}
 				<a
-					href="/note/{result.path}"
+					href="#/note/{result.path}"
 					class="block rounded-xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:bg-obsidian-800"
 				>
 					<div class="flex items-start justify-between">

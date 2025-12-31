@@ -1,16 +1,18 @@
-import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
-	plugins: [sveltekit()],
-	server: {
-		port: 5173,
-		proxy: {
-			'/api': {
-				target: process.env.VITE_API_URL || 'http://localhost:8000',
-				changeOrigin: true
-			}
-		}
-	}
+  plugins: [svelte()],
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
+        changeOrigin: true
+      }
+    }
+  },
+  build: {
+    outDir: 'build'
+  }
 });
-

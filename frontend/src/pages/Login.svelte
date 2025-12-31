@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { auth, isAuthenticated, isAuthLoading, authError } from '$lib/stores';
-	import { goto } from '$app/navigation';
+	import { push } from 'svelte-spa-router';
+	import { auth, isAuthenticated, isAuthLoading, authError } from '../lib/stores';
 
 	let password = $state('');
 	let submitting = $state(false);
@@ -14,24 +14,20 @@
 		submitting = false;
 
 		if (success) {
-			goto('/');
+			push('/');
 		}
 	}
 
 	// Redirect if already authenticated
 	$effect(() => {
 		if ($isAuthenticated && !$isAuthLoading) {
-			goto('/');
+			push('/');
 		}
 	});
 </script>
 
-<svelte:head>
-	<title>Login - Obsidian Web Reader</title>
-</svelte:head>
-
 <div
-	class="flex min-h-full items-center justify-center bg-gradient-to-br from-obsidian-100 to-obsidian-200 px-4 py-12 dark:from-obsidian-900 dark:to-obsidian-950"
+	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-obsidian-100 to-obsidian-200 px-4 py-12 dark:from-obsidian-900 dark:to-obsidian-950"
 >
 	<div
 		class="w-full max-w-md space-y-8 rounded-2xl bg-white p-8 shadow-xl dark:bg-obsidian-800"
