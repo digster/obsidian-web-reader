@@ -1,0 +1,14 @@
+{
+  "vaults": {
+    "personal": {
+      "path": "/data/vaults/personal",
+      "name": "Personal Notes"
+    },
+    "work": {
+      "path": "/data/vaults/work",
+      "name": "Work Documentation"
+    }
+  },
+  "default_vault": "personal"
+}
+

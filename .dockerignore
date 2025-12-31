@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.eggs
+dist
+build
+*.egg
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Virtual environments
+.venv
+venv
+ENV
+
+# Node
+node_modules
+.npm
+.pnpm-store
+
+# Build outputs
+frontend/build
+frontend/.svelte-kit
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test data
+test_vault
+*.db
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# Documentation
+*.md
+!README.md
+

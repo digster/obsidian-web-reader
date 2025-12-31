@@ -1,0 +1,35 @@
+# Production Docker Compose configuration
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount vault configuration (read-only)
+      - ../vaults.json:/app/vaults.json:ro
+      # Mount your vaults directory (read-only)
+      - ${VAULTS_PATH:-/path/to/vaults}:/data/vaults:ro
+      # Persist search index data
+      - search_data:/app/data
+    environment:
+      - APP_PASSWORD=${APP_PASSWORD:?APP_PASSWORD is required}
+      - SECRET_KEY=${SECRET_KEY:-}
+      - VAULTS_CONFIG=/app/vaults.json
+      - DATA_DIR=/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  search_data:
+    name: obsidian-reader-search-data
+

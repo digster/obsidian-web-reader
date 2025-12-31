@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	:root {
+		--color-bg: theme('colors.obsidian.50');
+		--color-bg-secondary: theme('colors.white');
+		--color-bg-tertiary: theme('colors.obsidian.100');
+		--color-text: theme('colors.obsidian.900');
+		--color-text-secondary: theme('colors.obsidian.600');
+		--color-text-muted: theme('colors.obsidian.400');
+		--color-border: theme('colors.obsidian.200');
+		--color-accent: theme('colors.accent.600');
+		--color-accent-hover: theme('colors.accent.700');
+	}
+
+	.dark {
+		--color-bg: theme('colors.obsidian.950');
+		--color-bg-secondary: theme('colors.obsidian.900');
+		--color-bg-tertiary: theme('colors.obsidian.800');
+		--color-text: theme('colors.obsidian.50');
+		--color-text-secondary: theme('colors.obsidian.300');
+		--color-text-muted: theme('colors.obsidian.500');
+		--color-border: theme('colors.obsidian.700');
+		--color-accent: theme('colors.accent.400');
+		--color-accent-hover: theme('colors.accent.300');
+	}
+
+	html {
+		scroll-behavior: smooth;
+	}
+
+	body {
+		@apply text-obsidian-900 dark:text-obsidian-50;
+		font-feature-settings:
+			'kern' 1,
+			'liga' 1;
+	}
+}
+
+@layer components {
+	/* Scrollbar styling */
+	.custom-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-border) transparent;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb {
+		background-color: var(--color-border);
+		border-radius: 4px;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: var(--color-text-muted);
+	}
+
+	/* Callout styles for Obsidian callouts */
+	.callout {
+		@apply my-4 rounded-lg border-l-4 p-4;
+	}
+
+	.callout-note {
+		@apply border-blue-500 bg-blue-50 dark:bg-blue-950/30;
+	}
+
+	.callout-warning {
+		@apply border-amber-500 bg-amber-50 dark:bg-amber-950/30;
+	}
+
+	.callout-danger,
+	.callout-error {
+		@apply border-red-500 bg-red-50 dark:bg-red-950/30;
+	}
+
+	.callout-tip,
+	.callout-hint {
+		@apply border-green-500 bg-green-50 dark:bg-green-950/30;
+	}
+
+	.callout-info {
+		@apply border-cyan-500 bg-cyan-50 dark:bg-cyan-950/30;
+	}
+
+	.callout-example {
+		@apply border-purple-500 bg-purple-50 dark:bg-purple-950/30;
+	}
+
+	.callout-quote {
+		@apply border-obsidian-400 bg-obsidian-100 italic dark:bg-obsidian-800/50;
+	}
+
+	.callout-title {
+		@apply mb-2 flex items-center gap-2 font-semibold;
+	}
+
+	.callout-content {
+		@apply text-sm;
+	}
+
+	/* Tag styling */
+	.tag {
+		@apply inline-flex items-center rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-medium text-accent-800 transition-colors hover:bg-accent-200 dark:bg-accent-900/30 dark:text-accent-300 dark:hover:bg-accent-800/50;
+	}
+
+	/* Internal link styling */
+	.internal-link {
+		@apply text-accent-600 no-underline hover:underline dark:text-accent-400;
+	}
+
+	.internal-link-missing {
+		@apply text-obsidian-400 line-through;
+	}
+
+	/* Code block styling */
+	.code-block {
+		@apply overflow-x-auto rounded-lg bg-obsidian-900 p-4 text-sm dark:bg-obsidian-950;
+	}
+
+	/* Checkbox styling for task lists */
+	.task-checkbox {
+		@apply mr-2 h-4 w-4 rounded border-obsidian-300 text-accent-600 focus:ring-accent-500 dark:border-obsidian-600;
+	}
+}
+
+/* KaTeX styling adjustments */
+.katex-display {
+	@apply my-4 overflow-x-auto py-2;
+}
+
+/* Highlight.js theme adjustments */
+.hljs {
+	@apply bg-transparent !important;
+}
+

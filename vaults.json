@@ -1,0 +1,10 @@
+{
+  "vaults": {
+    "test": {
+      "path": "./test_vault",
+      "name": "Test Vault"
+    }
+  },
+  "default_vault": "test"
+}
+
