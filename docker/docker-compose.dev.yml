@@ -14,8 +14,8 @@ services:
       - ../backend/src:/app/src
       # Mount vault configuration
       - ../vaults.json:/app/vaults.json
-      # Mount test vault
-      - ../test_vault:/data/vaults/test
+      # Mount test vault (path matches vaults.json: ./test_vault -> /app/test_vault)
+      - ../test_vault:/app/test_vault
       # Persist search index
       - dev_search_data:/app/data
     environment:
