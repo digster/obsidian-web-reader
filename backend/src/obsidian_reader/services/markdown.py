@@ -1,19 +1,26 @@
-"""Markdown parser with Obsidian-specific extensions."""
+"""Markdown parser with Obsidian-specific extensions and caching."""
 
+import hashlib
 import html
+import logging
 import re
+import threading
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 from xml.etree import ElementTree as ET
 
 import markdown
+from cachetools import LRUCache
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor, Pattern
-from markdown.preprocessors import Preprocessor
 from markdown.postprocessors import Postprocessor
-from markdown.blockprocessors import BlockProcessor
+from markdown.preprocessors import Preprocessor
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
-from pygments.lexers import get_lexer_by_name, guess_lexer, TextLexer
+from pygments.lexers import TextLexer, get_lexer_by_name, guess_lexer
+
+logger = logging.getLogger(__name__)
 
 
 # Pattern constants
@@ -325,10 +332,168 @@ class CodeBlockFormatter:
         return highlight(code, lexer, formatter)
 
 
-class MarkdownService:
-    """Service for rendering Obsidian markdown to HTML."""
+@dataclass
+class CacheStats:
+    """Statistics for the markdown render cache."""
 
-    def __init__(self):
+    hits: int = 0
+    misses: int = 0
+    size: int = 0
+    max_size: int = 0
+
+    @property
+    def hit_rate(self) -> float:
+        """Calculate cache hit rate as a percentage."""
+        total = self.hits + self.misses
+        return (self.hits / total * 100) if total > 0 else 0.0
+
+
+class MarkdownCache:
+    """Thread-safe LRU cache for rendered markdown content.
+
+    The cache key is based on vault_id, note_path, and file modification time,
+    ensuring automatic invalidation when files are updated.
+    """
+
+    def __init__(self, max_size: int = 500):
+        """Initialize the cache.
+
+        Args:
+            max_size: Maximum number of rendered notes to cache (default 500).
+        """
+        self._cache: LRUCache[str, str] = LRUCache(maxsize=max_size)
+        self._lock = threading.RLock()
+        self._hits = 0
+        self._misses = 0
+        self._max_size = max_size
+
+    def _make_key(
+        self,
+        vault_id: str,
+        note_path: str,
+        modified_at: datetime | None,
+    ) -> str:
+        """Create a cache key from note identifiers.
+
+        Args:
+            vault_id: The vault identifier.
+            note_path: Path to the note within the vault.
+            modified_at: File modification timestamp for cache invalidation.
+
+        Returns:
+            A unique cache key string.
+        """
+        # Use modification timestamp to auto-invalidate when file changes
+        mtime_str = modified_at.isoformat() if modified_at else "none"
+        key_data = f"{vault_id}:{note_path}:{mtime_str}"
+        # Use hash for consistent key length
+        return hashlib.sha256(key_data.encode()).hexdigest()
+
+    def get(
+        self,
+        vault_id: str,
+        note_path: str,
+        modified_at: datetime | None,
+    ) -> str | None:
+        """Get rendered HTML from cache if available.
+
+        Args:
+            vault_id: The vault identifier.
+            note_path: Path to the note within the vault.
+            modified_at: File modification timestamp.
+
+        Returns:
+            Cached HTML content or None if not in cache.
+        """
+        key = self._make_key(vault_id, note_path, modified_at)
+        with self._lock:
+            result = self._cache.get(key)
+            if result is not None:
+                self._hits += 1
+                logger.debug(f"Cache HIT for {vault_id}:{note_path}")
+            else:
+                self._misses += 1
+                logger.debug(f"Cache MISS for {vault_id}:{note_path}")
+            return result
+
+    def set(
+        self,
+        vault_id: str,
+        note_path: str,
+        modified_at: datetime | None,
+        html_content: str,
+    ) -> None:
+        """Store rendered HTML in cache.
+
+        Args:
+            vault_id: The vault identifier.
+            note_path: Path to the note within the vault.
+            modified_at: File modification timestamp.
+            html_content: The rendered HTML to cache.
+        """
+        key = self._make_key(vault_id, note_path, modified_at)
+        with self._lock:
+            self._cache[key] = html_content
+            logger.debug(f"Cached {vault_id}:{note_path} (size: {len(self._cache)})")
+
+    def invalidate(self, vault_id: str, note_path: str | None = None) -> int:
+        """Invalidate cache entries for a vault or specific note.
+
+        Args:
+            vault_id: The vault identifier.
+            note_path: Optional specific note path. If None, invalidates all
+                       entries for the vault.
+
+        Returns:
+            Number of entries invalidated.
+        """
+        # Note: Since we use hashed keys with mtime, explicit invalidation
+        # is rarely needed. The mtime change will naturally cause cache misses.
+        # This method is provided for manual cache clearing if needed.
+        with self._lock:
+            if note_path is None:
+                # Clear entire cache (no way to selectively clear by vault
+                # with hashed keys without storing additional metadata)
+                count = len(self._cache)
+                self._cache.clear()
+                logger.info(f"Cleared entire cache ({count} entries)")
+                return count
+            # For specific note, we can't easily find the key without mtime
+            # The natural mtime-based invalidation handles this case
+            return 0
+
+    def clear(self) -> None:
+        """Clear all cached entries."""
+        with self._lock:
+            self._cache.clear()
+            self._hits = 0
+            self._misses = 0
+            logger.info("Cache cleared")
+
+    def get_stats(self) -> CacheStats:
+        """Get cache statistics.
+
+        Returns:
+            CacheStats with current cache metrics.
+        """
+        with self._lock:
+            return CacheStats(
+                hits=self._hits,
+                misses=self._misses,
+                size=len(self._cache),
+                max_size=self._max_size,
+            )
+
+
+class MarkdownService:
+    """Service for rendering Obsidian markdown to HTML with caching support."""
+
+    def __init__(self, cache_max_size: int = 500):
+        """Initialize the markdown service.
+
+        Args:
+            cache_max_size: Maximum number of rendered notes to cache.
+        """
         self.md = markdown.Markdown(
             extensions=[
                 "fenced_code",
@@ -347,9 +512,19 @@ class MarkdownService:
                 },
             },
         )
+        self._cache = MarkdownCache(max_size=cache_max_size)
 
     def render(self, content: str) -> str:
-        """Render markdown content to HTML."""
+        """Render markdown content to HTML (uncached).
+
+        For cached rendering, use render_cached() instead.
+
+        Args:
+            content: Raw markdown content.
+
+        Returns:
+            Rendered HTML string.
+        """
         # Reset the markdown processor for each render
         self.md.reset()
 
@@ -360,6 +535,50 @@ class MarkdownService:
         html_content = self.md.convert(content)
 
         return html_content
+
+    def render_cached(
+        self,
+        content: str,
+        vault_id: str,
+        note_path: str,
+        modified_at: datetime | None,
+    ) -> str:
+        """Render markdown content to HTML with caching.
+
+        If the rendered content is already in cache, returns the cached version.
+        Otherwise, renders the content and stores it in cache.
+
+        Args:
+            content: Raw markdown content.
+            vault_id: The vault identifier.
+            note_path: Path to the note within the vault.
+            modified_at: File modification timestamp for cache invalidation.
+
+        Returns:
+            Rendered HTML string.
+        """
+        # Check cache first
+        cached = self._cache.get(vault_id, note_path, modified_at)
+        if cached is not None:
+            return cached
+
+        # Render and cache
+        html_content = self.render(content)
+        self._cache.set(vault_id, note_path, modified_at, html_content)
+
+        return html_content
+
+    def get_cache_stats(self) -> CacheStats:
+        """Get cache statistics.
+
+        Returns:
+            CacheStats with current cache metrics.
+        """
+        return self._cache.get_stats()
+
+    def clear_cache(self) -> None:
+        """Clear the render cache."""
+        self._cache.clear()
 
     def _highlight_code_blocks(self, content: str) -> str:
         """Pre-process fenced code blocks with syntax highlighting."""
@@ -386,6 +605,39 @@ markdown_service = MarkdownService()
 
 
 def render_markdown(content: str) -> str:
-    """Render markdown content to HTML using the global service."""
+    """Render markdown content to HTML using the global service (uncached).
+
+    For cached rendering, use render_markdown_cached() instead.
+    """
     return markdown_service.render(content)
+
+
+def render_markdown_cached(
+    content: str,
+    vault_id: str,
+    note_path: str,
+    modified_at: datetime | None,
+) -> str:
+    """Render markdown content to HTML with caching.
+
+    Args:
+        content: Raw markdown content.
+        vault_id: The vault identifier.
+        note_path: Path to the note within the vault.
+        modified_at: File modification timestamp for cache invalidation.
+
+    Returns:
+        Rendered HTML string.
+    """
+    return markdown_service.render_cached(content, vault_id, note_path, modified_at)
+
+
+def get_cache_stats() -> CacheStats:
+    """Get cache statistics from the global markdown service."""
+    return markdown_service.get_cache_stats()
+
+
+def clear_cache() -> None:
+    """Clear the global markdown service cache."""
+    markdown_service.clear_cache()
 

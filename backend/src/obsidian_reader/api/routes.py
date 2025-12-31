@@ -22,7 +22,7 @@ from ..models.schemas import (
     VaultListResponse,
     VaultSelectRequest,
 )
-from ..services.markdown import render_markdown
+from ..services.markdown import clear_cache, get_cache_stats, render_markdown_cached
 from ..services.search import search_service
 from ..services.vault_manager import vault_manager
 
@@ -186,7 +186,18 @@ async def get_file_tree(session_id: AuthSession) -> FileTreeResponse:
 
 @router.get("/vault/note/{note_path:path}", response_model=NoteResponse)
 async def get_note(note_path: str, session_id: AuthSession) -> NoteResponse:
-    """Get a note by path with rendered HTML content."""
+    """Get a note by path with rendered HTML content.
+
+    Uses caching to speed up repeated requests. Cache is automatically
+    invalidated when the file modification time changes.
+    """
+    vault_id = vault_manager.get_active_vault_id(session_id)
+    if not vault_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active vault selected",
+        )
+
     note = vault_manager.get_note(session_id, note_path)
 
     if not note:
@@ -195,8 +206,14 @@ async def get_note(note_path: str, session_id: AuthSession) -> NoteResponse:
             detail=f"Note not found: {note_path}",
         )
 
-    # Render markdown to HTML
-    note.content_html = render_markdown(note.content_html)
+    # Render markdown to HTML with caching
+    # Cache key uses vault_id, note_path, and modified_at for automatic invalidation
+    note.content_html = render_markdown_cached(
+        content=note.content_html,
+        vault_id=vault_id,
+        note_path=note_path,
+        modified_at=note.modified_at,
+    )
 
     return note
 
@@ -279,6 +296,33 @@ async def reindex_search(session_id: AuthSession) -> MessageResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to rebuild search index",
         )
+
+
+# ============================================================================
+# Cache Management
+# ============================================================================
+
+
+@router.get("/cache/stats")
+async def cache_stats(_session_id: AuthSession) -> dict:
+    """Get markdown render cache statistics."""
+    stats = get_cache_stats()
+    return {
+        "hits": stats.hits,
+        "misses": stats.misses,
+        "hit_rate": round(stats.hit_rate, 2),
+        "size": stats.size,
+        "max_size": stats.max_size,
+    }
+
+
+@router.post("/cache/clear", response_model=MessageResponse)
+async def clear_render_cache(_session_id: AuthSession) -> MessageResponse:
+    """Clear the markdown render cache."""
+    stats = get_cache_stats()
+    cleared_count = stats.size
+    clear_cache()
+    return MessageResponse(message=f"Cleared {cleared_count} cached entries")
 
 
 # ============================================================================

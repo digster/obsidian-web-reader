@@ -11,6 +11,7 @@ A web-based Obsidian vault reader that serves your markdown notes over the web. 
 - **Multi-Vault Support** - Switch between multiple Obsidian vaults
 - **Obsidian Syntax** - Full support for wiki links, embeds, callouts, tags, and more
 - **Full-Text Search** - Fast SQLite FTS5-powered search across all notes
+- **Markdown Caching** - LRU cache for rendered markdown with automatic invalidation
 - **Math Rendering** - LaTeX math with KaTeX
 - **Code Highlighting** - Syntax highlighting with Pygments/highlight.js
 - **Dark/Light Theme** - Automatic theme detection with manual toggle
@@ -222,10 +223,12 @@ obsidian-web-reader/
 | `GET` | `/api/vaults` | List available vaults |
 | `POST` | `/api/vaults/select` | Set active vault |
 | `GET` | `/api/vault/tree` | Get file tree |
-| `GET` | `/api/vault/note/{path}` | Get note content |
+| `GET` | `/api/vault/note/{path}` | Get note content (cached) |
 | `GET` | `/api/vault/attachment/{path}` | Get attachment |
 | `GET` | `/api/search?q={query}` | Search notes |
 | `POST` | `/api/search/reindex` | Rebuild search index |
+| `GET` | `/api/cache/stats` | Get markdown render cache stats |
+| `POST` | `/api/cache/clear` | Clear markdown render cache |
 | `GET` | `/api/health` | Health check |
 
 ## Running Tests

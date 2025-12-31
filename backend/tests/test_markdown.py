@@ -1,8 +1,18 @@
-"""Tests for markdown parsing."""
+"""Tests for markdown parsing and caching."""
+
+from datetime import datetime, timedelta
 
 import pytest
 
-from obsidian_reader.services.markdown import render_markdown, MarkdownService
+from obsidian_reader.services.markdown import (
+    CacheStats,
+    MarkdownCache,
+    MarkdownService,
+    clear_cache,
+    get_cache_stats,
+    render_markdown,
+    render_markdown_cached,
+)
 
 
 class TestMarkdownRendering:
@@ -185,4 +195,236 @@ code()
         assert "math-inline" in html
         assert "callout" in html
         assert "code-block" in html
+
+
+class TestMarkdownCache:
+    """Test suite for markdown cache functionality."""
+
+    def test_cache_basic_operation(self):
+        """Test basic cache get/set operations."""
+        cache = MarkdownCache(max_size=100)
+        vault_id = "test_vault"
+        note_path = "test/note.md"
+        modified_at = datetime.now()
+        html_content = "<h1>Test</h1>"
+
+        # Initially cache should be empty
+        assert cache.get(vault_id, note_path, modified_at) is None
+
+        # Set content in cache
+        cache.set(vault_id, note_path, modified_at, html_content)
+
+        # Should retrieve from cache
+        cached = cache.get(vault_id, note_path, modified_at)
+        assert cached == html_content
+
+    def test_cache_invalidation_on_mtime_change(self):
+        """Test that cache is invalidated when modification time changes."""
+        cache = MarkdownCache(max_size=100)
+        vault_id = "test_vault"
+        note_path = "test/note.md"
+        old_mtime = datetime.now()
+        new_mtime = old_mtime + timedelta(seconds=1)
+        html_content = "<h1>Test</h1>"
+
+        # Cache with old mtime
+        cache.set(vault_id, note_path, old_mtime, html_content)
+        assert cache.get(vault_id, note_path, old_mtime) == html_content
+
+        # New mtime should miss cache
+        assert cache.get(vault_id, note_path, new_mtime) is None
+
+    def test_cache_different_vaults(self):
+        """Test that different vaults have separate cache entries."""
+        cache = MarkdownCache(max_size=100)
+        note_path = "same/note.md"
+        modified_at = datetime.now()
+
+        # Cache for vault A
+        cache.set("vault_a", note_path, modified_at, "<h1>Vault A</h1>")
+        # Cache for vault B
+        cache.set("vault_b", note_path, modified_at, "<h1>Vault B</h1>")
+
+        assert cache.get("vault_a", note_path, modified_at) == "<h1>Vault A</h1>"
+        assert cache.get("vault_b", note_path, modified_at) == "<h1>Vault B</h1>"
+
+    def test_cache_stats(self):
+        """Test cache statistics tracking."""
+        cache = MarkdownCache(max_size=100)
+        vault_id = "test_vault"
+        note_path = "test/note.md"
+        modified_at = datetime.now()
+
+        # Initial stats
+        stats = cache.get_stats()
+        assert stats.hits == 0
+        assert stats.misses == 0
+        assert stats.size == 0
+
+        # Miss
+        cache.get(vault_id, note_path, modified_at)
+        stats = cache.get_stats()
+        assert stats.misses == 1
+
+        # Set and hit
+        cache.set(vault_id, note_path, modified_at, "<h1>Test</h1>")
+        cache.get(vault_id, note_path, modified_at)
+        stats = cache.get_stats()
+        assert stats.hits == 1
+        assert stats.size == 1
+
+    def test_cache_hit_rate(self):
+        """Test cache hit rate calculation."""
+        stats = CacheStats(hits=75, misses=25, size=50, max_size=100)
+        assert stats.hit_rate == 75.0
+
+        # Zero requests
+        empty_stats = CacheStats(hits=0, misses=0, size=0, max_size=100)
+        assert empty_stats.hit_rate == 0.0
+
+    def test_cache_clear(self):
+        """Test cache clearing."""
+        cache = MarkdownCache(max_size=100)
+        vault_id = "test_vault"
+        modified_at = datetime.now()
+
+        # Add some entries
+        for i in range(5):
+            cache.set(vault_id, f"note_{i}.md", modified_at, f"<h1>{i}</h1>")
+
+        assert cache.get_stats().size == 5
+
+        # Clear cache
+        cache.clear()
+
+        assert cache.get_stats().size == 0
+        assert cache.get_stats().hits == 0
+        assert cache.get_stats().misses == 0
+
+    def test_cache_lru_eviction(self):
+        """Test LRU eviction when cache is full."""
+        cache = MarkdownCache(max_size=3)
+        vault_id = "test_vault"
+        modified_at = datetime.now()
+
+        # Fill cache
+        cache.set(vault_id, "note_1.md", modified_at, "<h1>1</h1>")
+        cache.set(vault_id, "note_2.md", modified_at, "<h1>2</h1>")
+        cache.set(vault_id, "note_3.md", modified_at, "<h1>3</h1>")
+
+        # Access note_1 to make it recently used
+        cache.get(vault_id, "note_1.md", modified_at)
+
+        # Add new entry - should evict note_2 (least recently used)
+        cache.set(vault_id, "note_4.md", modified_at, "<h1>4</h1>")
+
+        assert cache.get_stats().size == 3
+        # note_1 should still be cached (was accessed)
+        assert cache.get(vault_id, "note_1.md", modified_at) == "<h1>1</h1>"
+        # note_4 should be cached (just added)
+        assert cache.get(vault_id, "note_4.md", modified_at) == "<h1>4</h1>"
+
+    def test_cache_none_modified_at(self):
+        """Test cache works with None modification time."""
+        cache = MarkdownCache(max_size=100)
+        vault_id = "test_vault"
+        note_path = "test/note.md"
+
+        cache.set(vault_id, note_path, None, "<h1>Test</h1>")
+        assert cache.get(vault_id, note_path, None) == "<h1>Test</h1>"
+
+
+class TestMarkdownServiceCaching:
+    """Test suite for MarkdownService caching integration."""
+
+    def test_render_cached_stores_and_retrieves(self):
+        """Test that render_cached stores and retrieves from cache."""
+        service = MarkdownService(cache_max_size=100)
+        content = "# Test Heading"
+        vault_id = "test_vault"
+        note_path = "test.md"
+        modified_at = datetime.now()
+
+        # First call should render and cache
+        html1 = service.render_cached(content, vault_id, note_path, modified_at)
+        stats1 = service.get_cache_stats()
+        assert stats1.misses == 1
+        assert stats1.size == 1
+
+        # Second call should hit cache
+        html2 = service.render_cached(content, vault_id, note_path, modified_at)
+        stats2 = service.get_cache_stats()
+        assert stats2.hits == 1
+        assert html1 == html2
+
+    def test_render_cached_vs_uncached_consistency(self):
+        """Test that cached and uncached rendering produce same output."""
+        service = MarkdownService(cache_max_size=100)
+        content = """# Test
+
+This has [[wiki links]] and #tags.
+
+> [!note] Callout
+> Content here.
+"""
+        vault_id = "test_vault"
+        note_path = "test.md"
+        modified_at = datetime.now()
+
+        # Uncached render
+        html_uncached = service.render(content)
+
+        # Cached render
+        html_cached = service.render_cached(content, vault_id, note_path, modified_at)
+
+        assert html_uncached == html_cached
+
+    def test_service_clear_cache(self):
+        """Test MarkdownService cache clearing."""
+        service = MarkdownService(cache_max_size=100)
+        content = "# Test"
+        vault_id = "test_vault"
+        modified_at = datetime.now()
+
+        # Add to cache
+        service.render_cached(content, vault_id, "test.md", modified_at)
+        assert service.get_cache_stats().size == 1
+
+        # Clear
+        service.clear_cache()
+        assert service.get_cache_stats().size == 0
+
+
+class TestGlobalCacheFunctions:
+    """Test suite for global cache functions."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_cache()
+
+    def test_render_markdown_cached_global(self):
+        """Test global render_markdown_cached function."""
+        content = "# Test"
+        vault_id = "test_vault"
+        note_path = "test.md"
+        modified_at = datetime.now()
+
+        html = render_markdown_cached(content, vault_id, note_path, modified_at)
+        assert "<h1" in html
+        assert "Test" in html
+
+        stats = get_cache_stats()
+        assert stats.size == 1
+
+    def test_global_clear_cache(self):
+        """Test global clear_cache function."""
+        content = "# Test"
+        vault_id = "test_vault"
+        modified_at = datetime.now()
+
+        render_markdown_cached(content, vault_id, "test.md", modified_at)
+        assert get_cache_stats().size == 1
+
+        clear_cache()
+        assert get_cache_stats().size == 0
 
