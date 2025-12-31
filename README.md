@@ -61,9 +61,8 @@ cp vaults.example.json vaults.json
 
 3. Create environment file:
 ```bash
-echo "APP_PASSWORD=your-secure-password" > .env
-echo "SECRET_KEY=$(openssl rand -hex 32)" >> .env
-echo "VAULTS_PATH=/path/to/your/vaults" >> .env
+cp .env.example .env
+# Edit .env to set your password and vault path
 ```
 
 4. Start with Docker Compose:
@@ -86,12 +85,13 @@ pip install uv
 # Install dependencies
 uv sync
 
-# Create vault config
-cp vaults.example.json vaults.json
-# Edit vaults.json
+# Create environment and vault config
+cp env.example .env
+cp ../vaults.example.json ../vaults.json
+# Edit .env and vaults.json as needed
 
 # Run development server
-ENV=development APP_PASSWORD=dev uv run uvicorn obsidian_reader.main:app --reload
+uv run uvicorn obsidian_reader.main:app --reload
 ```
 
 #### Frontend
@@ -105,6 +105,10 @@ npm install -g pnpm
 # Install dependencies
 pnpm install
 
+# (Optional) Create environment config if using custom API URL
+cp .env.example .env
+# Edit .env if backend runs on different host/port
+
 # Run development server
 pnpm dev
 ```
@@ -114,6 +118,13 @@ The frontend runs at http://localhost:5173 and proxies API requests to the backe
 ## Configuration
 
 ### Environment Variables
+
+Sample environment files are provided:
+- `.env.example` - Root config for Docker Compose
+- `backend/env.example` - Backend server config
+- `frontend/.env.example` - Frontend config (optional)
+
+Copy and customize these files before running the application.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -125,6 +136,8 @@ The frontend runs at http://localhost:5173 and proxies API requests to the backe
 | `PORT` | No | `8000` | Server bind port |
 | `VAULTS_CONFIG` | No | `./vaults.json` | Path to vault config file |
 | `DATA_DIR` | No | `./data` | Directory for search indexes |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `1440` | JWT token expiration (24 hours) |
+| `CORS_ORIGINS` | No | `localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Vault Configuration (`vaults.json`)
 
@@ -180,6 +193,7 @@ obsidian-web-reader/
 │   │   ├── models/         # Pydantic schemas
 │   │   └── services/       # Vault, markdown, search
 │   ├── tests/              # Pytest tests
+│   ├── env.example         # Backend env sample
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
@@ -188,11 +202,13 @@ obsidian-web-reader/
 │   │   │   ├── stores/     # Svelte stores
 │   │   │   └── api.ts      # API client
 │   │   └── routes/         # SvelteKit routes
+│   ├── .env.example        # Frontend env sample
 │   └── package.json
 ├── docker/
 │   ├── Dockerfile
 │   ├── docker-compose.yml      # Production
 │   └── docker-compose.dev.yml  # Development
+├── .env.example            # Docker Compose env sample
 └── vaults.json             # Vault configuration
 ```
 
