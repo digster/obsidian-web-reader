@@ -10,8 +10,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Mount vault configuration (read-only)
-      - ../vaults.json:/app/vaults.json:ro
+      # Mount vault configuration (writable for dynamic vault management)
+      - ../vaults.json:/app/vaults.json
       # Mount your vaults directory (read-only)
       - ${VAULTS_PATH:-/path/to/vaults}:/data/vaults:ro
       # Persist search index data
