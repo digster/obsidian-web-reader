@@ -9,6 +9,9 @@ A web-based Obsidian vault reader that serves your markdown notes over the web. 
 ## Features
 
 - **Multi-Vault Support** - Switch between multiple Obsidian vaults
+- **Vault Management UI** - Add and delete vaults directly from the web interface
+- **GitHub Integration** - Clone vaults from GitHub repositories using deploy tokens
+- **Auto-Sync** - Automatically pull updates from GitHub at configurable intervals
 - **Obsidian Syntax** - Full support for wiki links, embeds, callouts, tags, and more
 - **Full-Text Search** - Fast SQLite FTS5-powered search across all notes
 - **Markdown Caching** - LRU cache for rendered markdown with automatic invalidation
@@ -130,17 +133,20 @@ Copy and customize these files before running the application.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `APP_PASSWORD` | Yes | - | Password for accessing the app |
-| `SECRET_KEY` | No | Auto-generated | JWT token signing key |
+| `SECRET_KEY` | No | Auto-generated | JWT token signing key (also used for token encryption) |
 | `ENV` | No | `production` | `development` or `production` |
 | `DEBUG` | No | `false` | Enable debug logging |
 | `HOST` | No | `0.0.0.0` | Server bind host |
 | `PORT` | No | `8000` | Server bind port |
 | `VAULTS_CONFIG` | No | `./vaults.json` | Path to vault config file |
+| `VAULTS_DIR` | No | `./vaults` | Directory for cloned vault repositories |
 | `DATA_DIR` | No | `./data` | Directory for search indexes |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `1440` | JWT token expiration (24 hours) |
 | `CORS_ORIGINS` | No | `localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Vault Configuration (`vaults.json`)
+
+Vaults can be configured manually via `vaults.json` or added through the web UI:
 
 ```json
 {
@@ -151,12 +157,48 @@ Copy and customize these files before running the application.
     },
     "work": {
       "path": "/data/vaults/work",
-      "name": "Work Documentation"
+      "name": "Work Documentation",
+      "repo_url": "https://github.com/user/work-notes",
+      "encrypted_token": "gAAAAABl...",
+      "refresh_interval_minutes": 60
     }
   },
   "default_vault": "personal"
 }
 ```
+
+#### Vault Configuration Options
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `path` | Yes | Local path to the vault directory |
+| `name` | Yes | Display name for the vault |
+| `repo_url` | No | GitHub repository URL for git-based vaults |
+| `encrypted_token` | No | Encrypted deploy token (set via UI) |
+| `refresh_interval_minutes` | No | Auto-sync interval (1-1440 minutes) |
+
+### Adding Vaults via UI
+
+1. Click the vault selector in the header
+2. Click "Add Vault" button
+3. Fill in the form:
+   - **Vault Name**: Display name for your vault
+   - **Repository URL**: HTTPS URL of your GitHub repository
+   - **Deploy Token**: GitHub Personal Access Token or deploy key with read access
+   - **Auto-sync** (optional): Enable periodic git pull with interval in minutes
+
+The vault will be cloned to the `vaults` directory and automatically configured.
+
+### GitHub Deploy Tokens
+
+To create a deploy token for read-only access:
+
+1. Go to your GitHub repository → Settings → Secrets and variables → Actions
+2. Or create a Personal Access Token at https://github.com/settings/tokens
+3. Select only the `repo` scope (or just `read:packages` for private repos)
+4. Copy the token and use it when adding the vault
+
+Tokens are encrypted before storage using Fernet symmetric encryption derived from your `SECRET_KEY`.
 
 ## Docker Deployment
 
@@ -222,6 +264,9 @@ obsidian-web-reader/
 | `GET` | `/api/auth/me` | Get auth status |
 | `GET` | `/api/vaults` | List available vaults |
 | `POST` | `/api/vaults/select` | Set active vault |
+| `POST` | `/api/vaults/create` | Create vault from GitHub repo |
+| `DELETE` | `/api/vaults/{vault_id}` | Delete a vault |
+| `POST` | `/api/vaults/{vault_id}/sync` | Trigger manual git pull |
 | `GET` | `/api/vault/tree` | Get file tree |
 | `GET` | `/api/vault/note/{path}` | Get note content (cached) |
 | `GET` | `/api/vault/attachment/{path}` | Get attachment |

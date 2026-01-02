@@ -37,6 +37,10 @@ class Settings(BaseSettings):
         default=Path("./vaults.json"),
         description="Path to vault configuration file",
     )
+    vaults_dir: Path = Field(
+        default=Path("./vaults"),
+        description="Directory where cloned vault repositories are stored",
+    )
     data_dir: Path = Field(
         default=Path("./data"),
         description="Directory for storing search indexes and app data",

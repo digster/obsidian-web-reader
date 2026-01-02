@@ -19,9 +19,14 @@ from ..models.schemas import (
     NoteResponse,
     SearchResponse,
     TokenResponse,
+    VaultCreateRequest,
+    VaultDeleteRequest,
+    VaultInfo,
     VaultListResponse,
     VaultSelectRequest,
+    VaultSyncResponse,
 )
+from ..services.git_service import GitAuthenticationError, GitRepositoryError
 from ..services.markdown import clear_cache, get_cache_stats, render_markdown_cached
 from ..services.search import search_service
 from ..services.vault_manager import vault_manager
@@ -166,6 +171,97 @@ async def select_vault(
             logger.warning(f"Failed to build search index: {e}")
 
     return MessageResponse(message=f"Switched to vault: {request.vault_id}")
+
+
+@router.post("/vaults/create", response_model=VaultInfo)
+async def create_vault(
+    request: VaultCreateRequest,
+    _session_id: AuthSession,
+) -> VaultInfo:
+    """Create a new vault by cloning from a GitHub repository.
+
+    Requires:
+    - name: Display name for the vault
+    - repo_url: GitHub repository URL (HTTPS)
+    - token: GitHub deploy token for authentication
+    - refresh_interval_minutes: Optional sync interval (1-1440 minutes)
+    """
+    try:
+        vault_info = await vault_manager.add_vault(
+            name=request.name,
+            repo_url=request.repo_url,
+            token=request.token,
+            refresh_interval_minutes=request.refresh_interval_minutes,
+        )
+        return vault_info
+
+    except GitAuthenticationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
+    except GitRepositoryError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Failed to create vault: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create vault",
+        )
+
+
+@router.delete("/vaults/{vault_id}", response_model=MessageResponse)
+async def delete_vault(
+    vault_id: str,
+    delete_files: bool = True,
+    _session_id: AuthSession = None,
+) -> MessageResponse:
+    """Delete a vault.
+
+    Args:
+        vault_id: ID of the vault to delete.
+        delete_files: Whether to also delete vault files from disk (default: true).
+    """
+    try:
+        await vault_manager.delete_vault(vault_id, delete_files=delete_files)
+        return MessageResponse(message=f"Vault '{vault_id}' deleted successfully")
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete vault: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete vault",
+        )
+
+
+@router.post("/vaults/{vault_id}/sync", response_model=VaultSyncResponse)
+async def sync_vault(
+    vault_id: str,
+    _session_id: AuthSession,
+) -> VaultSyncResponse:
+    """Manually trigger a sync (git pull) for a vault.
+
+    The vault must have been created from a git repository with stored credentials.
+    """
+    result = await vault_manager.sync_vault(vault_id)
+    return VaultSyncResponse(
+        vault_id=vault_id,
+        success=result["success"],
+        message=result["message"],
+    )
 
 
 @router.get("/vault/tree", response_model=FileTreeResponse)

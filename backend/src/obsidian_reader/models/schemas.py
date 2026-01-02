@@ -51,6 +51,37 @@ class VaultSelectRequest(BaseModel):
     vault_id: str
 
 
+class VaultCreateRequest(BaseModel):
+    """Request to create a new vault from a git repository."""
+
+    name: str = Field(..., min_length=1, max_length=100, description="Display name for the vault")
+    repo_url: str = Field(..., description="GitHub repository URL (HTTPS)")
+    token: str = Field(..., min_length=1, description="GitHub deploy token for authentication")
+    refresh_interval_minutes: int | None = Field(
+        default=None,
+        ge=1,
+        le=1440,
+        description="Optional sync interval in minutes (1-1440)"
+    )
+
+
+class VaultDeleteRequest(BaseModel):
+    """Request to delete a vault."""
+
+    delete_files: bool = Field(
+        default=True,
+        description="Whether to also delete vault files from disk"
+    )
+
+
+class VaultSyncResponse(BaseModel):
+    """Response from a vault sync operation."""
+
+    success: bool
+    message: str
+    vault_id: str
+
+
 # File tree schemas
 class FileTreeItem(BaseModel):
     """A single item in the file tree."""
