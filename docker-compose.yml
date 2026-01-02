@@ -4,14 +4,14 @@ version: "3.8"
 services:
   app:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: .
+      dockerfile: Dockerfile
       target: production
     ports:
       - "${HOST_PORT:-8000}:8000"
     volumes:
       # Mount vault configuration (writable for dynamic vault management)
-      - ../vaults.json:/app/vaults.json
+      - ./vaults.json:/app/vaults.json
       # Mount your vaults directory (read-only)
       - ${VAULTS_PATH:-/path/to/vaults}:/data/vaults:ro
       # Persist search index data

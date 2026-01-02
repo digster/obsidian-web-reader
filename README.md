@@ -71,7 +71,7 @@ cp .env.example .env
 
 4. Start with Docker Compose:
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose up -d
 ```
 
 5. Open http://localhost:8000 in your browser (or the port specified in `HOST_PORT`)
@@ -215,20 +215,20 @@ Tokens are encrypted before storage using Fernet symmetric encryption derived fr
 
 ```bash
 # Build and start
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose up -d --build
 
 # View logs
-docker compose -f docker/docker-compose.yml logs -f
+docker compose logs -f
 
 # Stop
-docker compose -f docker/docker-compose.yml down
+docker compose down
 ```
 
 ### Development with Docker
 
 ```bash
 # Start both backend and frontend with hot reload
-docker compose -f docker/docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 
 # Backend available at http://localhost:8000
 # Frontend available at http://localhost:5173
@@ -256,10 +256,9 @@ obsidian-web-reader/
 │   │   └── routes/         # SvelteKit routes
 │   ├── .env.example        # Frontend env sample
 │   └── package.json
-├── docker/
-│   ├── Dockerfile
-│   ├── docker-compose.yml      # Production
-│   └── docker-compose.dev.yml  # Development
+├── Dockerfile              # Multi-stage Docker build
+├── docker-compose.yml      # Production compose
+├── docker-compose.dev.yml  # Development compose
 ├── .env.example            # Docker Compose env sample
 └── vaults.json             # Vault configuration
 ```
