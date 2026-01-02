@@ -74,7 +74,7 @@ cp .env.example .env
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-5. Open http://localhost:8000 in your browser
+5. Open http://localhost:8000 in your browser (or the port specified in `HOST_PORT`)
 
 ### Development Setup
 
@@ -201,6 +201,15 @@ To create a deploy token for read-only access:
 Tokens are encrypted before storage using Fernet symmetric encryption derived from your `SECRET_KEY`.
 
 ## Docker Deployment
+
+### Docker Compose Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `APP_PASSWORD` | Yes | - | Password for accessing the app |
+| `SECRET_KEY` | No | Auto-generated | JWT token signing key |
+| `HOST_PORT` | No | `8000` | Host port for the web interface |
+| `VAULTS_PATH` | Yes | - | Path to your vaults directory on the host |
 
 ### Production
 
