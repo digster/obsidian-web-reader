@@ -57,15 +57,32 @@ function createVaultStore() {
 
 			try {
 				const response = await vaultApi.list();
+				
+				// First update vaults list but NOT activeVaultId yet
 				update((state) => ({
 					...state,
 					vaults: response.vaults,
+					defaultVaultId: response.default_vault
+				}));
+
+				// Explicitly select the active vault BEFORE setting activeVaultId
+				// This ensures the backend session is mapped before any note requests
+				if (response.active_vault) {
+					try {
+						await vaultApi.select(response.active_vault);
+					} catch {
+						// Ignore errors - vault selection is best-effort here
+					}
+				}
+				
+				// NOW set activeVaultId and loading:false - this triggers Note.svelte
+				update((state) => ({
+					...state,
 					activeVaultId: response.active_vault,
-					defaultVaultId: response.default_vault,
 					loading: false
 				}));
 
-				// Load file tree if we have an active vault
+				// Load file tree after vault is fully ready
 				if (response.active_vault) {
 					await this.loadFileTree();
 				}
