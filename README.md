@@ -147,6 +147,7 @@ Copy and customize these files before running the application.
 | `VAULTS_DIR` | No | `./vaults` | Directory for cloned vault repositories |
 | `DATA_DIR` | No | `./data` | Directory for search indexes |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `1440` | JWT token expiration (24 hours) |
+| `SECURE_COOKIES` | No | `false` | Set cookies with Secure flag (only enable if using HTTPS directly) |
 | `CORS_ORIGINS` | No | `localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Vault Configuration (`config/vaults.json`)

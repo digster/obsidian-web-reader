@@ -31,6 +31,10 @@ class Settings(BaseSettings):
         description="Secret key for JWT signing",
     )
     access_token_expire_minutes: int = 60 * 24  # 24 hours
+    secure_cookies: bool = Field(
+        default=False,
+        description="Set cookies with Secure flag (requires HTTPS). Set to true if using HTTPS directly.",
+    )
 
     # Vault configuration
     vaults_config: Path = Field(

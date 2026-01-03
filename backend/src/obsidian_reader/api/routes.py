@@ -96,7 +96,7 @@ async def login(request: LoginRequest, response: Response) -> TokenResponse:
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=not settings.is_development,
+        secure=settings.secure_cookies,
         samesite="lax",
         max_age=settings.access_token_expire_minutes * 60,
         path="/",  # Ensure cookie is sent to all routes
