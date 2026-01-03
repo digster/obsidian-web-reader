@@ -61,12 +61,22 @@ app.include_router(api_router, prefix="/api")
 
 # Serve static files in production (frontend build)
 if not settings.is_development:
+    import logging
     from pathlib import Path
     from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse
 
+    _logger = logging.getLogger(__name__)
+
+    # Static path calculation:
+    # __file__ = .../src/obsidian_reader/main.py
+    # .parent   = .../src/obsidian_reader/
+    # .parent.parent = .../src/
+    # .parent.parent.parent = .../ (project root, e.g., /app in Docker)
     static_path = Path(__file__).parent.parent.parent / "static"
+    
     if static_path.exists():
+        _logger.info(f"Serving static files from {static_path}")
         app.mount("/assets", StaticFiles(directory=static_path / "assets"), name="assets")
 
         @app.get("/{full_path:path}")
@@ -76,6 +86,12 @@ if not settings.is_development:
             if file_path.exists() and file_path.is_file():
                 return FileResponse(file_path)
             return FileResponse(static_path / "index.html")
+    else:
+        _logger.warning(
+            f"Static files directory not found at {static_path}. "
+            "Frontend will not be served. "
+            "Ensure the frontend build is copied to the correct location."
+        )
 
 
 def run():
