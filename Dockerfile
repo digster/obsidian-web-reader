@@ -79,8 +79,9 @@ RUN uv pip install --system -e .
 # Copy built frontend
 COPY --from=frontend-build /app/frontend/build ./static
 
-# Create data directory
-RUN mkdir -p /app/data
+# Create data directory and default vaults.json
+RUN mkdir -p /app/data && \
+    echo '{"vaults": {}, "default_vault": null}' > /app/vaults.json
 
 # Environment
 ENV ENV=production

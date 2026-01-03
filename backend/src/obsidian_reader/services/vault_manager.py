@@ -54,8 +54,14 @@ class VaultManager:
 
         config_path = settings.vaults_config
 
-        if not config_path.exists():
-            logger.warning(f"Vault configuration not found at {config_path}")
+        if not config_path.exists() or config_path.is_dir():
+            if config_path.is_dir():
+                logger.warning(
+                    f"Vault configuration path is a directory: {config_path}. "
+                    "This can happen if the Docker volume mount target doesn't exist on the host."
+                )
+            else:
+                logger.warning(f"Vault configuration not found at {config_path}")
             # Create default config
             self._config = VaultsConfiguration(vaults={}, default_vault=None)
             self._initialized = True
@@ -121,6 +127,13 @@ class VaultManager:
         config_path = settings.vaults_config
 
         try:
+            # Handle case where config path is a directory (Docker mount issue)
+            if config_path.is_dir():
+                logger.warning(
+                    f"Config path {config_path} is a directory, removing it to create file"
+                )
+                config_path.rmdir()
+
             # Create parent directory if needed
             config_path.parent.mkdir(parents=True, exist_ok=True)
 
