@@ -9,11 +9,18 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	// Load note when params change
+	// Load note when params change AND vault is ready
 	$effect(() => {
 		const notePath = params.wild;
-		if (notePath) {
+		const vaultReady = $vault.activeVaultId !== null;
+		const vaultLoading = $vault.loading;
+
+		if (notePath && vaultReady) {
 			loadNote(notePath);
+		} else if (notePath && !vaultLoading && !vaultReady) {
+			// Vault finished loading but no active vault available
+			error = 'No vault selected';
+			loading = false;
 		}
 	});
 
@@ -24,7 +31,8 @@
 		const note = await vault.loadNote(path);
 
 		if (!note) {
-			error = `Note not found: ${path}`;
+			// Use the actual error from the store if available
+			error = $vault.error || `Note not found: ${path}`;
 		}
 
 		loading = false;
