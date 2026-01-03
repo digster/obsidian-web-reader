@@ -262,7 +262,6 @@ obsidian-web-reader/
 │   ├── .env.example        # Frontend env sample
 │   └── package.json
 ├── Dockerfile              # Multi-stage Docker build
-├── docker-entrypoint.sh    # Docker entrypoint (auto-creates config)
 ├── docker-compose.yml      # Production compose
 ├── docker-compose.dev.yml  # Development compose
 ├── .env.example            # Docker Compose env sample

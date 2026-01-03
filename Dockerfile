@@ -79,15 +79,8 @@ RUN uv pip install --system -e .
 # Copy built frontend
 COPY --from=frontend-build /app/frontend/build ./static
 
-# Create data, config, and defaults directories
-RUN mkdir -p /app/data /app/config /app/defaults
-
-# Copy default config to a safe location (won't be overwritten by mount)
-COPY config/vaults.example.json /app/defaults/vaults.json
-
-# Copy entrypoint script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+# Create data and config directories
+RUN mkdir -p /app/data /app/config
 
 # Environment
 ENV ENV=production
@@ -102,6 +95,5 @@ USER appuser
 
 EXPOSE 8000
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["uvicorn", "obsidian_reader.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 
