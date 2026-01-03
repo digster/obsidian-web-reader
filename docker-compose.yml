@@ -10,10 +10,8 @@ services:
     ports:
       - "${HOST_PORT:-8000}:8000"
     volumes:
-      # Mount vault configuration (writable for dynamic vault management)
-      # IMPORTANT: Create vaults.json BEFORE running docker-compose, or Docker will create it as a directory
-      # You can copy from vaults.example.json: cp vaults.example.json vaults.json
-      - ./vaults.json:/app/vaults.json
+      # Mount config directory (writable for dynamic vault management)
+      - ${CONFIG_PATH:-./config}:/app/config
       # Mount your vaults directory (read-only)
       - ${VAULTS_PATH:-/path/to/vaults}:/data/vaults:ro
       # Persist search index data
@@ -21,7 +19,7 @@ services:
     environment:
       - APP_PASSWORD=${APP_PASSWORD:?APP_PASSWORD is required}
       - SECRET_KEY=${SECRET_KEY:-}
-      - VAULTS_CONFIG=/app/vaults.json
+      - VAULTS_CONFIG=/app/config/vaults.json
       - DATA_DIR=/app/data
     restart: unless-stopped
     healthcheck:

@@ -57,10 +57,11 @@ git clone https://github.com/yourusername/obsidian-web-reader.git
 cd obsidian-web-reader
 ```
 
-2. Create vault configuration:
+2. Create config directory and vault configuration:
 ```bash
-cp vaults.example.json vaults.json
-# Edit vaults.json to point to your vault directories
+mkdir -p config
+cp vaults.example.json config/vaults.json
+# Edit config/vaults.json to point to your vault directories
 ```
 
 3. Create environment file:
@@ -91,8 +92,9 @@ uv sync
 
 # Create environment and vault config
 cp env.example .env
-cp ../vaults.example.json ../vaults.json
-# Edit .env and vaults.json as needed
+mkdir -p ../config
+cp ../vaults.example.json ../config/vaults.json
+# Edit .env and config/vaults.json as needed
 
 # Run development server
 uv run uvicorn obsidian_reader.main:app --reload
@@ -138,15 +140,15 @@ Copy and customize these files before running the application.
 | `DEBUG` | No | `false` | Enable debug logging |
 | `HOST` | No | `0.0.0.0` | Server bind host |
 | `PORT` | No | `8000` | Server bind port |
-| `VAULTS_CONFIG` | No | `./vaults.json` | Path to vault config file |
+| `VAULTS_CONFIG` | No | `./config/vaults.json` | Path to vault config file |
 | `VAULTS_DIR` | No | `./vaults` | Directory for cloned vault repositories |
 | `DATA_DIR` | No | `./data` | Directory for search indexes |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `1440` | JWT token expiration (24 hours) |
 | `CORS_ORIGINS` | No | `localhost:5173` | Allowed CORS origins (comma-separated) |
 
-### Vault Configuration (`vaults.json`)
+### Vault Configuration (`config/vaults.json`)
 
-Vaults can be configured manually via `vaults.json` or added through the web UI:
+Vaults can be configured manually via `config/vaults.json` or added through the web UI:
 
 ```json
 {
@@ -260,7 +262,9 @@ obsidian-web-reader/
 ├── docker-compose.yml      # Production compose
 ├── docker-compose.dev.yml  # Development compose
 ├── .env.example            # Docker Compose env sample
-└── vaults.json             # Vault configuration
+├── config/                 # Configuration directory (mounted in Docker)
+│   └── vaults.json         # Vault configuration
+└── vaults.example.json     # Example vault configuration
 ```
 
 ## API Endpoints

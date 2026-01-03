@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # Vault configuration
     vaults_config: Path = Field(
-        default=Path("./vaults.json"),
+        default=Path("./config/vaults.json"),
         description="Path to vault configuration file",
     )
     vaults_dir: Path = Field(

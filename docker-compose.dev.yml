@@ -12,8 +12,8 @@ services:
     volumes:
       # Mount source code for hot reload
       - ./backend/src:/app/src
-      # Mount vault configuration
-      - ./vaults.json:/app/vaults.json
+      # Mount config directory
+      - ./config:/app/config
       # Mount test vault (path matches vaults.json: ./test_vault -> /app/test_vault)
       - ./test_vault:/app/test_vault
       # Persist search index
@@ -22,7 +22,7 @@ services:
       - APP_PASSWORD=dev
       - ENV=development
       - DEBUG=true
-      - VAULTS_CONFIG=/app/vaults.json
+      - VAULTS_CONFIG=/app/config/vaults.json
       - DATA_DIR=/app/data
       - CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]
 
