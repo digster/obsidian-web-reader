@@ -131,6 +131,47 @@ class TestVaultEndpoints:
 
         assert response.status_code == 404
 
+    def test_get_note_with_special_characters_in_path(self, authenticated_client: TestClient):
+        """Test getting a note with dashes and spaces in the filename.
+        
+        This tests the URL encoding/decoding of paths with special characters.
+        The frontend encodes each path segment individually, preserving slashes.
+        """
+        authenticated_client.post(
+            "/api/vaults/select",
+            json={"vault_id": "test"}
+        )
+
+        # URL encode the path properly - encode each segment but keep slashes
+        # This simulates what the frontend does with encodePathForUrl
+        response = authenticated_client.get(
+            "/api/vault/note/subfolder/note-with-dashes%20-%20test%201"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == "Note With Dashes"
+        assert "content_html" in data
+
+    def test_get_note_with_unencoded_special_characters(self, authenticated_client: TestClient):
+        """Test getting a note with unencoded special characters in the filename.
+        
+        FastAPI's path converter should handle both encoded and unencoded paths.
+        """
+        authenticated_client.post(
+            "/api/vaults/select",
+            json={"vault_id": "test"}
+        )
+
+        # Test with unencoded path (spaces directly in URL)
+        response = authenticated_client.get(
+            "/api/vault/note/subfolder/note-with-dashes - test 1"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == "Note With Dashes"
+
     def test_get_attachment(self, authenticated_client: TestClient):
         """Test getting an attachment."""
         authenticated_client.post(

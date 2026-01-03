@@ -69,6 +69,18 @@ This is a note in a subfolder.
 """
     )
 
+    # Create a note with special characters (dashes, spaces) in the filename
+    (subfolder / "note-with-dashes - test 1.md").write_text(
+        """---
+title: Note With Dashes
+---
+
+# Note With Dashes
+
+This is a note with dashes and spaces in the filename.
+"""
+    )
+
     # Create an attachments folder
     attachments = vault_path / "attachments"
     attachments.mkdir()

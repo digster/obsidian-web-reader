@@ -153,6 +153,19 @@ export const authApi = {
 	status: () => api.get<AuthStatus>('/auth/me')
 };
 
+/**
+ * Encode a path for use in URL, preserving forward slashes.
+ * Encodes each segment individually to handle special characters in file/folder names.
+ * Note: We use encodeURIComponent which does NOT encode: A-Z a-z 0-9 - _ . ! ~ * ' ( )
+ * Dashes are kept as-is since they're URL-safe, but we encode other special chars.
+ */
+function encodePathForUrl(path: string): string {
+	return path
+		.split('/')
+		.map((segment) => encodeURIComponent(segment))
+		.join('/');
+}
+
 // Vault API
 export const vaultApi = {
 	list: () => api.get<VaultListResponse>('/vaults'),
@@ -174,10 +187,10 @@ export const vaultApi = {
 	getTree: () => api.get<FileTreeResponse>('/vault/tree'),
 
 	getNote: (path: string) =>
-		api.get<NoteResponse>(`/vault/note/${encodeURIComponent(path)}`),
+		api.get<NoteResponse>(`/vault/note/${encodePathForUrl(path)}`),
 
 	getAttachmentUrl: (path: string) =>
-		`${API_BASE}/vault/attachment/${encodeURIComponent(path)}`
+		`${API_BASE}/vault/attachment/${encodePathForUrl(path)}`
 };
 
 // Search API

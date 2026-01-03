@@ -26,7 +26,7 @@ class TestSearchIndex:
         index.initialize()
 
         count = index.build_index()
-        assert count == 3  # 3 markdown files in temp_vault
+        assert count == 4  # 4 markdown files in temp_vault
 
     def test_search_basic(self, temp_vault: Path, tmp_path: Path):
         """Test basic search."""
@@ -112,7 +112,7 @@ class TestSearchService:
         service = SearchService()
         count = service.build_index("test", temp_vault)
 
-        assert count == 3
+        assert count == 4
 
     def test_search(self, temp_vault: Path, tmp_path: Path):
         """Test searching through service."""

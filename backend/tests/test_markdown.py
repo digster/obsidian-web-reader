@@ -33,7 +33,7 @@ class TestMarkdownRendering:
         content = "Link to [[Another Note]]."
         html = render_markdown(content)
 
-        assert 'href="/note/Another Note"' in html
+        assert 'href="#/note/Another Note"' in html
         assert 'class="internal-link"' in html
         assert "Another Note" in html
 
@@ -42,7 +42,7 @@ class TestMarkdownRendering:
         content = "Link to [[Another Note|Display Text]]."
         html = render_markdown(content)
 
-        assert 'href="/note/Another Note"' in html
+        assert 'href="#/note/Another Note"' in html
         assert "Display Text" in html
 
     def test_wiki_links_with_heading(self):
@@ -50,7 +50,7 @@ class TestMarkdownRendering:
         content = "Link to [[Note#Section]]."
         html = render_markdown(content)
 
-        assert 'href="/note/Note#section"' in html
+        assert 'href="#/note/Note?heading=section"' in html
 
     def test_image_embeds(self):
         """Test image embed rendering."""

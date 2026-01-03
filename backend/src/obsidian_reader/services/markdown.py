@@ -44,12 +44,12 @@ class WikiLinkInlineProcessor(InlineProcessor):
         el = ET.Element("a")
         el.set("class", "internal-link")
 
-        # Build href
-        href = f"/note/{target}"
+        # Build href (use hash-based routing for SPA)
+        href = f"#/note/{target}"
         if heading:
-            # Convert heading to anchor format
+            # Convert heading to anchor format - use query param to avoid hash conflict
             anchor = heading.lower().replace(" ", "-")
-            href += f"#{anchor}"
+            href += f"?heading={anchor}"
         el.set("href", href)
         el.set("data-target", target)
 
@@ -91,9 +91,9 @@ class EmbedInlineProcessor(InlineProcessor):
             if heading:
                 el.set("data-embed-heading", heading)
 
-            # Add a link to the embedded note
+            # Add a link to the embedded note (use hash-based routing for SPA)
             inner = ET.SubElement(el, "a")
-            inner.set("href", f"/note/{target}")
+            inner.set("href", f"#/note/{target}")
             inner.set("class", "internal-link font-medium")
             inner.text = f"📄 {alias or target}"
             if heading:
@@ -167,7 +167,7 @@ class EmbedPreprocessor(Preprocessor):
                 heading_attr = ""
 
             return f'''<div class="embedded-note border-l-4 border-accent-400 pl-4 my-4 bg-obsidian-100 dark:bg-obsidian-800 rounded-r-lg p-4" data-embed-target="{html.escape(target)}"{heading_attr}>
-<a href="/note/{html.escape(target)}" class="internal-link font-medium">📄 {display}</a>
+<a href="#/note/{html.escape(target)}" class="internal-link font-medium">📄 {display}</a>
 </div>'''
 
 

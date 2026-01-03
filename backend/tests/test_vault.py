@@ -24,7 +24,7 @@ class TestVaultService:
         """Test counting notes in vault."""
         service = VaultService("test", temp_vault, "Test Vault")
         count = service.get_note_count()
-        assert count == 3  # test_note, Another Note, nested_note
+        assert count == 4  # test_note, Another Note, nested_note, note-with-dashes - test 1
 
     def test_build_file_tree(self, temp_vault: Path):
         """Test building file tree."""
