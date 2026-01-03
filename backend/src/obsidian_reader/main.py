@@ -65,7 +65,7 @@ if not settings.is_development:
     from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse
 
-    static_path = Path(__file__).parent.parent.parent.parent / "static"
+    static_path = Path(__file__).parent.parent.parent / "static"
     if static_path.exists():
         app.mount("/assets", StaticFiles(directory=static_path / "assets"), name="assets")
 
