@@ -1,0 +1,10 @@
+{
+  "vaults": {
+    "my-vault": {
+      "path": "/data/vaults/my-vault",
+      "name": "My Vault"
+    }
+  },
+  "default_vault": "my-vault"
+}
+

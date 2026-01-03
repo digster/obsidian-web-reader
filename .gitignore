@@ -66,9 +66,10 @@ Thumbs.db
 *.db
 data/
 
-# Config directory contents (contains sensitive vault tokens)
+# Config directory contents (user-specific, may contain sensitive vault tokens)
 config/*
 !config/.gitkeep
+!config/vaults.example.json
 
 # Legacy vault config in root (use config/vaults.json instead)
 vaults.json

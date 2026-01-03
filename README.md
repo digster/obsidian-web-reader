@@ -57,12 +57,15 @@ git clone https://github.com/yourusername/obsidian-web-reader.git
 cd obsidian-web-reader
 ```
 
-2. Create config directory and vault configuration:
+2. (Optional) Create vault configuration:
 ```bash
+# Copy example config if you want to pre-configure vaults
 mkdir -p config
-cp vaults.example.json config/vaults.json
+cp config/vaults.example.json config/vaults.json
 # Edit config/vaults.json to point to your vault directories
 ```
+
+> **Note**: If no `config/vaults.json` exists, the container will automatically create an empty configuration on first startup. You can then add vaults through the web UI.
 
 3. Create environment file:
 ```bash
@@ -93,7 +96,7 @@ uv sync
 # Create environment and vault config
 cp env.example .env
 mkdir -p ../config
-cp ../vaults.example.json ../config/vaults.json
+cp ../config/vaults.example.json ../config/vaults.json
 # Edit .env and config/vaults.json as needed
 
 # Run development server
@@ -259,12 +262,12 @@ obsidian-web-reader/
 │   ├── .env.example        # Frontend env sample
 │   └── package.json
 ├── Dockerfile              # Multi-stage Docker build
+├── docker-entrypoint.sh    # Docker entrypoint (auto-creates config)
 ├── docker-compose.yml      # Production compose
 ├── docker-compose.dev.yml  # Development compose
 ├── .env.example            # Docker Compose env sample
-├── config/                 # Configuration directory (mounted in Docker)
-│   └── vaults.json         # Vault configuration
-└── vaults.example.json     # Example vault configuration
+└── config/                 # Configuration directory (mounted in Docker)
+    └── vaults.example.json # Example vault configuration
 ```
 
 ## API Endpoints
