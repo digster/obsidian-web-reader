@@ -88,7 +88,14 @@ function createVaultStore() {
 		 * Select a vault as the active vault.
 		 */
 		async selectVault(vaultId: string): Promise<boolean> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			// Clear file tree and note immediately for responsive UI
+			update((state) => ({ 
+				...state, 
+				loading: true, 
+				fileTree: [],
+				currentNote: null,
+				error: null 
+			}));
 
 			try {
 				await vaultApi.select(vaultId);
@@ -96,16 +103,17 @@ function createVaultStore() {
 				// Clear note cache when switching vaults
 				this.clearNoteCache();
 				
+				// Load file tree for new vault BEFORE updating state
+				const treeResponse = await vaultApi.getTree();
+				
 				update((state) => ({
 					...state,
 					activeVaultId: vaultId,
 					vaultReady: true,
-					currentNote: null,
+					fileTree: treeResponse.tree,
 					loading: false
 				}));
 
-				// Load file tree for new vault
-				await this.loadFileTree();
 				return true;
 			} catch (e) {
 				const error = e as { detail?: string };
