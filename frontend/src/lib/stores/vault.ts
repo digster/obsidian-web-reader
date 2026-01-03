@@ -17,6 +17,7 @@ interface VaultState {
 	fileTree: FileTreeItem[];
 	currentNote: NoteResponse | null;
 	loading: boolean;
+	noteLoading: boolean;
 	error: string | null;
 }
 
@@ -38,6 +39,7 @@ const initialState: VaultState = {
 	fileTree: [],
 	currentNote: null,
 	loading: false,
+	noteLoading: false,
 	error: null
 };
 
@@ -163,7 +165,7 @@ function createVaultStore() {
 				return cached.note;
 			}
 
-			update((state) => ({ ...state, loading: true, error: null }));
+			update((state) => ({ ...state, noteLoading: true, error: null }));
 
 			try {
 				const note = await vaultApi.getNote(path);
@@ -177,7 +179,7 @@ function createVaultStore() {
 				update((state) => ({
 					...state,
 					currentNote: note,
-					loading: false
+					noteLoading: false
 				}));
 				return note;
 			} catch (e) {
@@ -185,7 +187,7 @@ function createVaultStore() {
 				update((state) => ({
 					...state,
 					currentNote: null,
-					loading: false,
+					noteLoading: false,
 					error: error.detail || 'Failed to load note'
 				}));
 				return null;
@@ -338,5 +340,6 @@ export const activeVault = derived(vault, ($vault) =>
 );
 
 export const vaultLoading = derived(vault, ($vault) => $vault.loading);
+export const noteLoading = derived(vault, ($vault) => $vault.noteLoading);
 export const vaultError = derived(vault, ($vault) => $vault.error);
 
