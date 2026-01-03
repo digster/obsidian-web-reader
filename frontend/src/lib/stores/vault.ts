@@ -19,6 +19,8 @@ interface VaultState {
 	loading: boolean;
 	noteLoading: boolean;
 	error: string | null;
+	/** True only after vault has been selected on backend - safe to make note requests */
+	vaultReady: boolean;
 }
 
 interface CachedNote {
@@ -40,7 +42,8 @@ const initialState: VaultState = {
 	currentNote: null,
 	loading: false,
 	noteLoading: false,
-	error: null
+	error: null,
+	vaultReady: false
 };
 
 function createVaultStore() {
@@ -53,7 +56,7 @@ function createVaultStore() {
 		 * Load list of available vaults.
 		 */
 		async loadVaults(): Promise<void> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			update((state) => ({ ...state, loading: true, vaultReady: false, error: null }));
 
 			try {
 				const response = await vaultApi.list();
@@ -65,7 +68,7 @@ function createVaultStore() {
 					defaultVaultId: response.default_vault
 				}));
 
-				// Explicitly select the active vault BEFORE setting activeVaultId
+				// Explicitly select the active vault BEFORE setting vaultReady
 				// This ensures the backend session is mapped before any note requests
 				if (response.active_vault) {
 					try {
@@ -75,10 +78,12 @@ function createVaultStore() {
 					}
 				}
 				
-				// NOW set activeVaultId and loading:false - this triggers Note.svelte
+				// NOW set activeVaultId, vaultReady, and loading:false
+				// vaultReady signals that it's safe to make note requests
 				update((state) => ({
 					...state,
 					activeVaultId: response.active_vault,
+					vaultReady: !!response.active_vault,
 					loading: false
 				}));
 
@@ -91,6 +96,7 @@ function createVaultStore() {
 				update((state) => ({
 					...state,
 					loading: false,
+					vaultReady: false,
 					error: error.detail || 'Failed to load vaults'
 				}));
 			}
@@ -100,7 +106,7 @@ function createVaultStore() {
 		 * Select a vault as the active vault.
 		 */
 		async selectVault(vaultId: string): Promise<boolean> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			update((state) => ({ ...state, loading: true, vaultReady: false, error: null }));
 
 			try {
 				await vaultApi.select(vaultId);
@@ -111,6 +117,7 @@ function createVaultStore() {
 				update((state) => ({
 					...state,
 					activeVaultId: vaultId,
+					vaultReady: true,
 					currentNote: null,
 					loading: false
 				}));
@@ -123,6 +130,7 @@ function createVaultStore() {
 				update((state) => ({
 					...state,
 					loading: false,
+					vaultReady: false,
 					error: error.detail || 'Failed to select vault'
 				}));
 				return false;

@@ -12,21 +12,22 @@
 	let loadedPath = $state<string | null>(null);
 
 	// Derived values to avoid tracking entire store in effect
-	let activeVaultId = $derived($vault.activeVaultId);
+	// vaultReady is true only AFTER the backend session is mapped
+	let vaultReady = $derived($vault.vaultReady);
 	let vaultLoading = $derived($vault.loading);
 
 	// Load note when params change AND vault is ready
 	$effect(() => {
 		const notePath = params.wild;
-		const vaultReady = activeVaultId !== null;
 		const isVaultLoading = vaultLoading;
+		const isVaultReady = vaultReady;
 
-		// Only load if path changed or we haven't loaded this path yet
-		if (notePath && vaultReady && notePath !== loadedPath) {
+		// Only load if vault is ready and path changed
+		if (notePath && isVaultReady && notePath !== loadedPath) {
 			untrack(() => {
 				loadNote(notePath);
 			});
-		} else if (notePath && !isVaultLoading && !vaultReady) {
+		} else if (notePath && !isVaultLoading && !isVaultReady) {
 			// Vault finished loading but no active vault available
 			error = 'No vault selected';
 			loading = false;
