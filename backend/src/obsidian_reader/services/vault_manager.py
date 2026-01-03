@@ -388,8 +388,11 @@ class VaultManager:
             if vault_id in self._vaults:
                 return vault_id
 
-        # Fall back to default
-        return self.get_default_vault()
+        # Fall back to default and auto-map the session
+        default_vault = self.get_default_vault()
+        if default_vault:
+            self._session_vaults[session_id] = default_vault
+        return default_vault
 
     def set_active_vault(self, session_id: str, vault_id: str) -> bool:
         """Set the active vault for a session."""

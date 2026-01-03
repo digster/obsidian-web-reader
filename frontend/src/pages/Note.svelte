@@ -2,7 +2,6 @@
 	import { push } from 'svelte-spa-router';
 	import { vault } from '../lib/stores';
 	import NoteContent from '../lib/components/NoteContent.svelte';
-	import { untrack } from 'svelte';
 
 	// Get note path from route params
 	let { params = {} }: { params?: { wild?: string } } = $props();
@@ -11,24 +10,17 @@
 	let error = $state<string | null>(null);
 	let loadedPath = $state<string | null>(null);
 
-	// Derived values to avoid tracking entire store in effect
-	// vaultReady is true only AFTER the backend session is mapped
+	// Wait for vault to be ready before loading notes
 	let vaultReady = $derived($vault.vaultReady);
 	let vaultLoading = $derived($vault.loading);
 
 	// Load note when params change AND vault is ready
 	$effect(() => {
 		const notePath = params.wild;
-		const isVaultLoading = vaultLoading;
-		const isVaultReady = vaultReady;
 
-		// Only load if vault is ready and path changed
-		if (notePath && isVaultReady && notePath !== loadedPath) {
-			untrack(() => {
-				loadNote(notePath);
-			});
-		} else if (notePath && !isVaultLoading && !isVaultReady) {
-			// Vault finished loading but no active vault available
+		if (notePath && vaultReady && notePath !== loadedPath) {
+			loadNote(notePath);
+		} else if (notePath && !vaultLoading && !vaultReady) {
 			error = 'No vault selected';
 			loading = false;
 		}
@@ -42,9 +34,7 @@
 		const note = await vault.loadNote(path);
 
 		if (!note) {
-			// Get error from store after the call
-			const storeError = $vault.error;
-			error = storeError || `Note not found: ${path}`;
+			error = $vault.error || `Note not found: ${path}`;
 		}
 
 		loading = false;

@@ -56,38 +56,20 @@ function createVaultStore() {
 		 * Load list of available vaults.
 		 */
 		async loadVaults(): Promise<void> {
-			update((state) => ({ ...state, loading: true, vaultReady: false, error: null }));
+			update((state) => ({ ...state, loading: true, error: null }));
 
 			try {
 				const response = await vaultApi.list();
-				
-				// First update vaults list but NOT activeVaultId yet
 				update((state) => ({
 					...state,
 					vaults: response.vaults,
-					defaultVaultId: response.default_vault
-				}));
-
-				// Explicitly select the active vault BEFORE setting vaultReady
-				// This ensures the backend session is mapped before any note requests
-				if (response.active_vault) {
-					try {
-						await vaultApi.select(response.active_vault);
-					} catch {
-						// Ignore errors - vault selection is best-effort here
-					}
-				}
-				
-				// NOW set activeVaultId, vaultReady, and loading:false
-				// vaultReady signals that it's safe to make note requests
-				update((state) => ({
-					...state,
 					activeVaultId: response.active_vault,
+					defaultVaultId: response.default_vault,
 					vaultReady: !!response.active_vault,
 					loading: false
 				}));
 
-				// Load file tree after vault is fully ready
+				// Load file tree if we have an active vault
 				if (response.active_vault) {
 					await this.loadFileTree();
 				}
@@ -106,7 +88,7 @@ function createVaultStore() {
 		 * Select a vault as the active vault.
 		 */
 		async selectVault(vaultId: string): Promise<boolean> {
-			update((state) => ({ ...state, loading: true, vaultReady: false, error: null }));
+			update((state) => ({ ...state, loading: true, error: null }));
 
 			try {
 				await vaultApi.select(vaultId);
@@ -130,7 +112,6 @@ function createVaultStore() {
 				update((state) => ({
 					...state,
 					loading: false,
-					vaultReady: false,
 					error: error.detail || 'Failed to select vault'
 				}));
 				return false;
