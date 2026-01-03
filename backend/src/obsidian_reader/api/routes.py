@@ -99,6 +99,7 @@ async def login(request: LoginRequest, response: Response) -> TokenResponse:
         secure=not settings.is_development,
         samesite="lax",
         max_age=settings.access_token_expire_minutes * 60,
+        path="/",  # Ensure cookie is sent to all routes
     )
 
     return TokenResponse(access_token=access_token)
@@ -107,7 +108,7 @@ async def login(request: LoginRequest, response: Response) -> TokenResponse:
 @router.post("/auth/logout", response_model=MessageResponse)
 async def logout(response: Response) -> MessageResponse:
     """Logout and clear the access token cookie."""
-    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="access_token", path="/")
     return MessageResponse(message="Logged out successfully")
 
 
