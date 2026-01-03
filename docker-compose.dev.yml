@@ -1,6 +1,4 @@
 # Development Docker Compose configuration
-version: "3.8"
-
 services:
   backend:
     build:

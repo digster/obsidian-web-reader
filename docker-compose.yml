@@ -1,6 +1,4 @@
 # Production Docker Compose configuration
-version: "3.8"
-
 services:
   app:
     build:
@@ -12,15 +10,18 @@ services:
     volumes:
       # Mount config directory (writable for dynamic vault management)
       - ${CONFIG_PATH:-./config}:/app/config
-      # Mount your vaults directory (read-only)
+      # Mount your vaults directory (read-only for pre-existing vaults)
       - ${VAULTS_PATH:-/path/to/vaults}:/data/vaults:ro
       # Persist search index data
       - search_data:/app/data
+      # Persist dynamically added vaults (cloned from git)
+      - vaults_data:/app/vaults
     environment:
       - APP_PASSWORD=${APP_PASSWORD:?APP_PASSWORD is required}
       - SECRET_KEY=${SECRET_KEY:-}
       - VAULTS_CONFIG=/app/config/vaults.json
       - DATA_DIR=/app/data
+      - VAULTS_DIR=/app/vaults
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
@@ -32,4 +33,6 @@ services:
 volumes:
   search_data:
     name: obsidian-reader-search-data
+  vaults_data:
+    name: obsidian-reader-vaults
 

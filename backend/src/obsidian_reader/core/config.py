@@ -62,7 +62,7 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
-    @field_validator("vaults_config", "data_dir", mode="before")
+    @field_validator("vaults_config", "vaults_dir", "data_dir", mode="before")
     @classmethod
     def convert_to_path(cls, v: str | Path) -> Path:
         """Convert string paths to Path objects."""
