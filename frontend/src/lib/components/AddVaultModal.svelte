@@ -91,7 +91,7 @@
 {#if open}
 	<!-- Backdrop -->
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
 		onclick={(e) => e.target === e.currentTarget && handleClose()}
 		role="dialog"
 		aria-modal="true"
@@ -99,7 +99,7 @@
 	>
 		<!-- Modal -->
 		<div
-			class="relative w-full max-w-lg rounded-xl border border-obsidian-200 bg-white p-6 shadow-2xl dark:border-obsidian-700 dark:bg-obsidian-900"
+			class="relative my-auto w-full max-w-lg rounded-xl border border-obsidian-200 bg-white p-6 shadow-2xl dark:border-obsidian-700 dark:bg-obsidian-900"
 		>
 			<!-- Close button -->
 			<button
