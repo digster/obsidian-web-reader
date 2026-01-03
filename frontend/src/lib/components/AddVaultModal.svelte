@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { vaultApi, type VaultCreateRequest, type VaultInfo } from '../api';
+	import Portal from './Portal.svelte';
 
 	interface Props {
 		open: boolean;
@@ -89,14 +90,15 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-	<!-- Backdrop -->
-	<div
-		class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
-		onclick={(e) => e.target === e.currentTarget && handleClose()}
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="modal-title"
-	>
+	<Portal>
+		<!-- Backdrop -->
+		<div
+			class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+			onclick={(e) => e.target === e.currentTarget && handleClose()}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="modal-title"
+		>
 		<!-- Modal -->
 		<div
 			class="relative my-auto w-full max-w-lg rounded-xl border border-obsidian-200 bg-white p-6 shadow-2xl dark:border-obsidian-700 dark:bg-obsidian-900"
@@ -310,5 +312,6 @@
 			</form>
 		</div>
 	</div>
+	</Portal>
 {/if}
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Portal from './Portal.svelte';
+
 	interface Props {
 		open: boolean;
 		title: string;
@@ -48,14 +50,15 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-	<!-- Backdrop -->
-	<div
-		class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
-		onclick={(e) => e.target === e.currentTarget && !loading && onCancel()}
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="confirm-title"
-	>
+	<Portal>
+		<!-- Backdrop -->
+		<div
+			class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+			onclick={(e) => e.target === e.currentTarget && !loading && onCancel()}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="confirm-title"
+		>
 		<!-- Modal -->
 		<div
 			class="relative my-auto w-full max-w-md rounded-xl border border-obsidian-200 bg-white p-6 shadow-2xl dark:border-obsidian-700 dark:bg-obsidian-900"
@@ -165,5 +168,6 @@
 			</div>
 		</div>
 	</div>
+	</Portal>
 {/if}
 

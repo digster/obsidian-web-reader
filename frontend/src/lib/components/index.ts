@@ -10,4 +10,5 @@ export { default as ThemeToggle } from './ThemeToggle.svelte';
 export { default as NoteContent } from './NoteContent.svelte';
 export { default as AddVaultModal } from './AddVaultModal.svelte';
 export { default as ConfirmModal } from './ConfirmModal.svelte';
+export { default as Portal } from './Portal.svelte';
 
