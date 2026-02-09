@@ -10,13 +10,15 @@
 	import Home from './pages/Home.svelte';
 	import Note from './pages/Note.svelte';
 	import Search from './pages/Search.svelte';
+	import NotFound from './pages/NotFound.svelte';
 
 	// Define routes
 	const routes = {
 		'/': Home,
 		'/login': Login,
 		'/note/*': Note,
-		'/search': Search
+		'/search': Search,
+		'*': NotFound
 	};
 
 	let sidebarOpen = $state(false);

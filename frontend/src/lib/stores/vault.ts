@@ -1,7 +1,7 @@
 /**
  * Vault store for managing vault state and file tree.
  */
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import {
 	vaultApi,
 	type VaultInfo,
@@ -47,7 +47,8 @@ const initialState: VaultState = {
 };
 
 function createVaultStore() {
-	const { subscribe, set, update } = writable<VaultState>(initialState);
+	const store = writable<VaultState>(initialState);
+	const { subscribe, set, update } = store;
 
 	return {
 		subscribe,
@@ -151,11 +152,7 @@ function createVaultStore() {
 		 */
 		async loadNote(path: string): Promise<NoteResponse | null> {
 			// Get current vault ID for cache key
-			let currentVaultId: string | null = null;
-			const unsubscribe = subscribe((state) => {
-				currentVaultId = state.activeVaultId;
-			});
-			unsubscribe();
+			const currentVaultId = get(store).activeVaultId;
 			
 			if (!currentVaultId) {
 				update((state) => ({
@@ -170,10 +167,11 @@ function createVaultStore() {
 			
 			// Check if we have a valid cached note
 			if (cached && (Date.now() - cached.cachedAt) < CACHE_TTL) {
-				// Return from cache immediately without loading state
+				// Return from cache immediately, ensuring noteLoading is false
 				update((state) => ({
 					...state,
 					currentNote: cached.note,
+					noteLoading: false,
 					error: null
 				}));
 				return cached.note;
@@ -241,12 +239,7 @@ function createVaultStore() {
 		 * Invalidate a specific note from the cache (e.g., after edit).
 		 */
 		invalidateNote(path: string): void {
-			let currentVaultId: string | null = null;
-			const unsubscribe = subscribe((state) => {
-				currentVaultId = state.activeVaultId;
-			});
-			unsubscribe();
-			
+			const currentVaultId = get(store).activeVaultId;
 			if (currentVaultId) {
 				const cacheKey = `${currentVaultId}:${path}`;
 				noteCache.delete(cacheKey);

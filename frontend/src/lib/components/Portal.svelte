@@ -13,7 +13,13 @@
 		// Move the container to body
 		document.body.appendChild(container);
 
+		// Lock body scroll while modal is open
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+
 		return () => {
+			// Restore body scroll
+			document.body.style.overflow = previousOverflow;
 			// Clean up when component is destroyed
 			if (container && container.parentNode === document.body) {
 				document.body.removeChild(container);

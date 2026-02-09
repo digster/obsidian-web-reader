@@ -55,6 +55,21 @@ async def startup_event():
             except Exception as e:
                 logging.warning(f"Failed to build search index for {vault_info.id}: {e}")
 
+    # Start scheduler for vault auto-sync
+    from .services.scheduler import vault_scheduler
+
+    vault_scheduler.set_vault_manager(vault_manager)
+    vault_scheduler.start()
+    vault_scheduler.reschedule_all_vaults()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Gracefully shutdown background services."""
+    from .services.scheduler import vault_scheduler
+
+    vault_scheduler.shutdown()
+
 
 # Include API routes
 app.include_router(api_router, prefix="/api")
@@ -83,8 +98,9 @@ if not settings.is_development:
         async def serve_spa(full_path: str):
             """Serve SPA for all non-API routes."""
             file_path = static_path / full_path
-            if file_path.exists() and file_path.is_file():
-                return FileResponse(file_path)
+            resolved = file_path.resolve()
+            if resolved.is_relative_to(static_path.resolve()) and resolved.is_file():
+                return FileResponse(resolved)
             return FileResponse(static_path / "index.html")
     else:
         _logger.warning(

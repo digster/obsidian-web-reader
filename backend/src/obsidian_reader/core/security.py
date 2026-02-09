@@ -2,14 +2,18 @@
 
 import base64
 import hashlib
+import hmac
 import logging
 from datetime import datetime, timedelta, timezone
 
 import jwt
 from cryptography.fernet import Fernet, InvalidToken
+from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from .config import settings
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +101,13 @@ def verify_token(token: str) -> TokenData | None:
 
 
 def verify_password(password: str) -> bool:
-    """Verify if the provided password matches the app password."""
-    return password == settings.app_password
+    """Verify if the provided password matches the app password.
+
+    Supports both bcrypt-hashed passwords (starting with '$2b$') and
+    plain-text passwords (using timing-safe comparison).
+    """
+    stored = settings.app_password
+    if stored.startswith(("$2b$", "$2a$", "$2y$")):
+        return pwd_context.verify(password, stored)
+    return hmac.compare_digest(password.encode("utf-8"), stored.encode("utf-8"))
 
