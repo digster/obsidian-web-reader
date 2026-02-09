@@ -4,6 +4,7 @@ import json
 import logging
 import re
 import shutil
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,7 @@ class VaultManager:
         # Active vault per session (in a real app, this would be per-user session)
         self._session_vaults: dict[str, str] = {}  # session_id -> vault_id
         self._git_service: GitService = git_service
+        self._lock = threading.Lock()
 
     async def initialize(self) -> None:
         """Initialize the vault manager by loading configuration."""
@@ -237,7 +239,8 @@ class VaultManager:
             vault_path=target_path,
             vault_name=name,
         )
-        self._vaults[vault_id] = vault_service
+        with self._lock:
+            self._vaults[vault_id] = vault_service
 
         # Schedule sync if interval is set
         if refresh_interval_minutes and refresh_interval_minutes > 0:
@@ -283,16 +286,16 @@ class VaultManager:
 
         vault_scheduler.remove_vault_sync(vault_id)
 
-        # Remove from active vaults
-        if vault_id in self._vaults:
-            del self._vaults[vault_id]
+        # Remove from active vaults and session mappings under lock
+        with self._lock:
+            if vault_id in self._vaults:
+                del self._vaults[vault_id]
 
-        # Remove from session mappings
-        sessions_to_clear = [
-            sid for sid, vid in self._session_vaults.items() if vid == vault_id
-        ]
-        for sid in sessions_to_clear:
-            del self._session_vaults[sid]
+            sessions_to_clear = [
+                sid for sid, vid in self._session_vaults.items() if vid == vault_id
+            ]
+            for sid in sessions_to_clear:
+                del self._session_vaults[sid]
 
         # Delete files if requested
         if delete_files and vault_path.exists():
@@ -352,13 +355,10 @@ class VaultManager:
         """Get list of all available vaults."""
         vaults: list[VaultInfo] = []
 
-        for vault_id, vault_service in self._vaults.items():
-            # Get additional info from config if available
-            has_sync = False
-            if self._config and vault_id in self._config.vaults:
-                cfg = self._config.vaults[vault_id]
-                has_sync = bool(cfg.repo_url and cfg.encrypted_token)
+        with self._lock:
+            vault_items = list(self._vaults.items())
 
+        for vault_id, vault_service in vault_items:
             vaults.append(
                 VaultInfo(
                     id=vault_id,
@@ -383,28 +383,31 @@ class VaultManager:
 
     def get_active_vault_id(self, session_id: str) -> str | None:
         """Get the active vault ID for a session."""
-        if session_id in self._session_vaults:
-            vault_id = self._session_vaults[session_id]
-            if vault_id in self._vaults:
-                return vault_id
+        with self._lock:
+            if session_id in self._session_vaults:
+                vault_id = self._session_vaults[session_id]
+                if vault_id in self._vaults:
+                    return vault_id
 
-        # Fall back to default and auto-map the session
-        default_vault = self.get_default_vault()
-        if default_vault:
-            self._session_vaults[session_id] = default_vault
-        return default_vault
+            # Fall back to default and auto-map the session
+            default_vault = self.get_default_vault()
+            if default_vault:
+                self._session_vaults[session_id] = default_vault
+            return default_vault
 
     def set_active_vault(self, session_id: str, vault_id: str) -> bool:
         """Set the active vault for a session."""
-        if vault_id not in self._vaults:
-            return False
+        with self._lock:
+            if vault_id not in self._vaults:
+                return False
 
-        self._session_vaults[session_id] = vault_id
-        return True
+            self._session_vaults[session_id] = vault_id
+            return True
 
     def get_vault(self, vault_id: str) -> VaultService | None:
         """Get a specific vault service by ID."""
-        return self._vaults.get(vault_id)
+        with self._lock:
+            return self._vaults.get(vault_id)
 
     def get_active_vault(self, session_id: str) -> VaultService | None:
         """Get the active vault service for a session."""

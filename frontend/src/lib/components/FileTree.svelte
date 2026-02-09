@@ -21,9 +21,14 @@
 		expandedFolders = new Set(expandedFolders); // Trigger reactivity
 	}
 
+	function stripMdSuffix(path: string): string {
+		return path.endsWith('.md') ? path.slice(0, -3) : path;
+	}
+
 	function isActive(path: string): boolean {
 		const currentPath = $location;
-		return currentPath === `/note/${path}` || currentPath === `/note/${path}.md`;
+		const stripped = stripMdSuffix(path);
+		return currentPath === `/note/${stripped}` || currentPath === `/note/${path}`;
 	}
 </script>
 
@@ -81,7 +86,7 @@
 				{/if}
 			{:else}
 				<a
-					href="#/note/{item.path.replace('.md', '')}"
+					href="#/note/{stripMdSuffix(item.path)}"
 					class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-obsidian-100 dark:hover:bg-obsidian-800"
 					class:bg-accent-100={isActive(item.path)}
 					class:dark:bg-accent-900={isActive(item.path)}

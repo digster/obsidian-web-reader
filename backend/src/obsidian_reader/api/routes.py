@@ -222,14 +222,14 @@ async def create_vault(
 @router.delete("/vaults/{vault_id}", response_model=MessageResponse)
 async def delete_vault(
     vault_id: str,
-    delete_files: bool = True,
-    _session_id: AuthSession = None,
+    _session_id: AuthSession,
+    delete_files: bool = False,
 ) -> MessageResponse:
     """Delete a vault.
 
     Args:
         vault_id: ID of the vault to delete.
-        delete_files: Whether to also delete vault files from disk (default: true).
+        delete_files: Whether to also delete vault files from disk (default: false).
     """
     try:
         await vault_manager.delete_vault(vault_id, delete_files=delete_files)
@@ -239,6 +239,12 @@ async def delete_vault(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
+        )
+    except PermissionError as e:
+        logger.error(f"Permission denied deleting vault: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied when deleting vault files",
         )
     except Exception as e:
         logger.error(f"Failed to delete vault: {e}")

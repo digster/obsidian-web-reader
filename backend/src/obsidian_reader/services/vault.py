@@ -1,5 +1,6 @@
 """Vault service for reading and processing a single Obsidian vault."""
 
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -8,6 +9,8 @@ from typing import Any
 import frontmatter
 
 from ..models.schemas import BacklinkInfo, FileTreeItem, NoteResponse
+
+logger = logging.getLogger(__name__)
 
 
 class VaultService:
@@ -129,7 +132,8 @@ class VaultService:
                 modified_at=modified_at,
             )
 
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error reading note '{note_path}' in vault '{self.vault_id}': {e}")
             return None
 
     def _extract_tags(self, content: str, frontmatter_data: dict[str, Any]) -> list[str]:
@@ -192,7 +196,8 @@ class VaultService:
                         backlinks.append(BacklinkInfo(path=rel_path, title=str(link_title)))
                         break  # Only add each file once
 
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Error scanning backlinks in vault '{self.vault_id}': {e}")
                 continue
 
         return backlinks
@@ -251,7 +256,8 @@ class VaultService:
                     rel_path = str(md_file.relative_to(self.vault_path)).replace(".md", "")
                     results.append((rel_path, str(title), snippet))
 
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Error searching file in vault '{self.vault_id}': {e}")
                 continue
 
         return results

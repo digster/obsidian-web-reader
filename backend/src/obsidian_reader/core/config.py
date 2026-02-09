@@ -1,5 +1,6 @@
 """Application configuration using Pydantic Settings."""
 
+import json
 import secrets
 from pathlib import Path
 from typing import Literal
@@ -56,9 +57,18 @@ class Settings(BaseSettings):
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
-        """Parse CORS origins from comma-separated string or list."""
+        """Parse CORS origins from JSON array string or comma-separated string."""
         if isinstance(v, str):
-            # Handle comma-separated string from env var
+            v = v.strip()
+            # Try parsing as JSON array first (e.g. '["http://localhost:5173"]')
+            if v.startswith("["):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(origin).strip() for origin in parsed if str(origin).strip()]
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            # Fall back to comma-separated string
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 

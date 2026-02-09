@@ -3,6 +3,7 @@
 import logging
 import re
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -21,15 +22,17 @@ class SearchIndex:
         self.vault_id = vault_id
         self.vault_path = vault_path
         self.db_path = settings.data_dir / f"{vault_id}.db"
-        self._connection: sqlite3.Connection | None = None
+        self._local = threading.local()
 
     def _get_connection(self) -> sqlite3.Connection:
-        """Get or create database connection."""
-        if self._connection is None:
+        """Get or create a per-thread database connection."""
+        conn = getattr(self._local, "connection", None)
+        if conn is None:
             settings.data_dir.mkdir(parents=True, exist_ok=True)
-            self._connection = sqlite3.connect(str(self.db_path), check_same_thread=False)
-            self._connection.row_factory = sqlite3.Row
-        return self._connection
+            conn = sqlite3.connect(str(self.db_path))
+            conn.row_factory = sqlite3.Row
+            self._local.connection = conn
+        return conn
 
     def initialize(self) -> None:
         """Create the FTS5 virtual table if it doesn't exist."""
@@ -215,14 +218,14 @@ class SearchIndex:
         return results
 
     def close(self) -> None:
-        """Close the database connection."""
-        if self._connection:
+        """Close the current thread's database connection."""
+        conn = getattr(self._local, "connection", None)
+        if conn is not None:
             try:
-                self._connection.close()
+                conn.close()
             except sqlite3.ProgrammingError:
-                # Ignore threading errors on close
                 pass
-            self._connection = None
+            self._local.connection = None
 
 
 class SearchService:

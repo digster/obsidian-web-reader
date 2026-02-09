@@ -325,13 +325,14 @@ class TestMarkdownCache:
         assert cache.get(vault_id, "note_4.md", modified_at) == "<h1>4</h1>"
 
     def test_cache_none_modified_at(self):
-        """Test cache works with None modification time."""
+        """Test that cache skips entries with None modification time."""
         cache = MarkdownCache(max_size=100)
         vault_id = "test_vault"
         note_path = "test/note.md"
 
+        # With None modified_at, cache should not store the entry
         cache.set(vault_id, note_path, None, "<h1>Test</h1>")
-        assert cache.get(vault_id, note_path, None) == "<h1>Test</h1>"
+        assert cache.get(vault_id, note_path, None) is None
 
 
 class TestMarkdownServiceCaching:

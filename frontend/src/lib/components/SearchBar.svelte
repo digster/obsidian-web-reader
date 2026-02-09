@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { push } from 'svelte-spa-router';
+	import { onDestroy } from 'svelte';
 	import { searchApi, type SearchResult } from '../api';
 
 	let query = $state('');
@@ -7,6 +8,11 @@
 	let showResults = $state(false);
 	let loading = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout>;
+
+	// Clean up debounce timer on component destruction
+	onDestroy(() => {
+		clearTimeout(debounceTimer);
+	});
 
 	async function handleSearch() {
 		if (!query.trim()) {
@@ -103,8 +109,10 @@
 
 	<!-- Search Results Dropdown -->
 	{#if showResults && results.length > 0}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-lg border border-obsidian-200 bg-white shadow-lg dark:border-obsidian-700 dark:bg-obsidian-800"
+			onmousedown={(e) => e.preventDefault()}
 		>
 			<ul class="max-h-80 overflow-y-auto">
 				{#each results.slice(0, 8) as result}
@@ -112,7 +120,7 @@
 						<button
 							type="button"
 							class="w-full px-4 py-3 text-left transition-colors hover:bg-obsidian-100 dark:hover:bg-obsidian-700"
-							onclick={() => selectResult(result.path)}
+							onmousedown={() => selectResult(result.path)}
 						>
 							<div class="font-medium text-obsidian-900 dark:text-obsidian-100">
 								{result.title}
@@ -131,7 +139,7 @@
 					<button
 						type="button"
 						class="text-sm text-accent-600 hover:text-accent-700 dark:text-accent-400"
-						onclick={() => push(`/search?q=${encodeURIComponent(query)}`)}
+						onmousedown={() => push(`/search?q=${encodeURIComponent(query)}`)}
 					>
 						View all {results.length} results →
 					</button>
@@ -140,4 +148,3 @@
 		</div>
 	{/if}
 </div>
-

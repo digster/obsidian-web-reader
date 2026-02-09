@@ -87,7 +87,7 @@ class TestSearchIndex:
         index.initialize()
 
         index.close()
-        assert index._connection is None
+        assert getattr(index._local, "connection", None) is None
 
 
 class TestSearchService:

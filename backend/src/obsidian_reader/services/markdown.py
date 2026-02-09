@@ -383,9 +383,11 @@ class MarkdownCache:
         Returns:
             A unique cache key string.
         """
-        # Use modification timestamp to auto-invalidate when file changes
-        mtime_str = modified_at.isoformat() if modified_at else "none"
-        key_data = f"{vault_id}:{note_path}:{mtime_str}"
+        # Use modification timestamp to auto-invalidate when file changes.
+        # Return None if no modification time, to skip caching (cannot invalidate).
+        if modified_at is None:
+            return None
+        key_data = f"{vault_id}:{note_path}:{modified_at.isoformat()}"
         # Use hash for consistent key length
         return hashlib.sha256(key_data.encode()).hexdigest()
 
@@ -406,6 +408,9 @@ class MarkdownCache:
             Cached HTML content or None if not in cache.
         """
         key = self._make_key(vault_id, note_path, modified_at)
+        if key is None:
+            self._misses += 1
+            return None
         with self._lock:
             result = self._cache.get(key)
             if result is not None:
@@ -432,6 +437,8 @@ class MarkdownCache:
             html_content: The rendered HTML to cache.
         """
         key = self._make_key(vault_id, note_path, modified_at)
+        if key is None:
+            return
         with self._lock:
             self._cache[key] = html_content
             logger.debug(f"Cached {vault_id}:{note_path} (size: {len(self._cache)})")
@@ -494,7 +501,12 @@ class MarkdownService:
         Args:
             cache_max_size: Maximum number of rendered notes to cache.
         """
-        self.md = markdown.Markdown(
+        self._cache = MarkdownCache(max_size=cache_max_size)
+
+    @staticmethod
+    def _create_md() -> markdown.Markdown:
+        """Create a fresh Markdown instance (thread-safe)."""
+        return markdown.Markdown(
             extensions=[
                 "fenced_code",
                 "tables",
@@ -512,12 +524,12 @@ class MarkdownService:
                 },
             },
         )
-        self._cache = MarkdownCache(max_size=cache_max_size)
 
     def render(self, content: str) -> str:
         """Render markdown content to HTML (uncached).
 
         For cached rendering, use render_cached() instead.
+        Creates a new Markdown instance per call for thread safety.
 
         Args:
             content: Raw markdown content.
@@ -525,14 +537,13 @@ class MarkdownService:
         Returns:
             Rendered HTML string.
         """
-        # Reset the markdown processor for each render
-        self.md.reset()
+        md = self._create_md()
 
         # Apply syntax highlighting to fenced code blocks
         content = self._highlight_code_blocks(content)
 
         # Render markdown
-        html_content = self.md.convert(content)
+        html_content = md.convert(content)
 
         return html_content
 
