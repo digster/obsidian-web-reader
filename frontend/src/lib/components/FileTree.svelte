@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { location } from 'svelte-spa-router';
-	import type { FileTreeItem } from '../api';
+	import { encodePathForUrl, type FileTreeItem } from '../api';
 
 	interface Props {
 		items: FileTreeItem[];
@@ -28,7 +28,14 @@
 	function isActive(path: string): boolean {
 		const currentPath = $location;
 		const stripped = stripMdSuffix(path);
-		return currentPath === `/note/${stripped}` || currentPath === `/note/${path}`;
+		const encodedStripped = encodePathForUrl(stripped);
+		const encodedPath = encodePathForUrl(path);
+		return (
+			currentPath === `/note/${stripped}` ||
+			currentPath === `/note/${path}` ||
+			currentPath === `/note/${encodedStripped}` ||
+			currentPath === `/note/${encodedPath}`
+		);
 	}
 </script>
 
@@ -86,7 +93,7 @@
 				{/if}
 			{:else}
 				<a
-					href="#/note/{stripMdSuffix(item.path)}"
+					href="#/note/{encodePathForUrl(stripMdSuffix(item.path))}"
 					class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-obsidian-100 dark:hover:bg-obsidian-800"
 					class:bg-accent-100={isActive(item.path)}
 					class:dark:bg-accent-900={isActive(item.path)}

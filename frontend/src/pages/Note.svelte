@@ -9,16 +9,19 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let loadedPath = $state<string | null>(null);
+	let loadedVaultId = $state<string | null>(null);
 
 	// Wait for vault to be ready before loading notes
 	let vaultReady = $derived($vault.vaultReady);
 	let vaultLoading = $derived($vault.loading);
+	let activeVaultId = $derived($vault.activeVaultId);
 
 	// Load note when params change AND vault is ready
+	// Also reload if the active vault changes (e.g., user switches vaults)
 	$effect(() => {
 		const notePath = params.wild;
 
-		if (notePath && vaultReady && notePath !== loadedPath) {
+		if (notePath && vaultReady && (notePath !== loadedPath || activeVaultId !== loadedVaultId)) {
 			loadNote(notePath);
 		} else if (notePath && !vaultLoading && !vaultReady) {
 			error = 'No vault selected';
@@ -29,11 +32,17 @@
 	async function loadNote(path: string) {
 		loading = true;
 		error = null;
-		loadedPath = path;
 
 		const note = await vault.loadNote(path);
 
-		if (!note) {
+		if (note) {
+			// Only set guard state on success
+			loadedPath = path;
+			loadedVaultId = activeVaultId;
+		} else {
+			// Reset guard on failure to allow retry
+			loadedPath = null;
+			loadedVaultId = null;
 			error = $vault.error || `Note not found: ${path}`;
 		}
 

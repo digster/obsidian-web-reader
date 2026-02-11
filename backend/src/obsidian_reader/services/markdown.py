@@ -5,6 +5,7 @@ import html
 import logging
 import re
 import threading
+import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -32,6 +33,17 @@ BLOCK_MATH_PATTERN = r"\$\$(.+?)\$\$"
 CALLOUT_PATTERN = r"^>\s*\[!(\w+)\]([+-])?(?:\s*(.*))?$"
 
 
+def encode_path_for_url(path: str) -> str:
+    """Encode a path for use in URLs, preserving forward slash separators.
+
+    Each path segment is individually percent-encoded so that spaces
+    and special characters in filenames don't break hrefs/srcs.
+    """
+    return "/".join(
+        urllib.parse.quote(segment, safe="") for segment in path.split("/")
+    )
+
+
 class WikiLinkInlineProcessor(InlineProcessor):
     """Process Obsidian-style wiki links: [[page]], [[page|alias]], [[page#heading]]."""
 
@@ -45,7 +57,7 @@ class WikiLinkInlineProcessor(InlineProcessor):
         el.set("class", "internal-link")
 
         # Build href (use hash-based routing for SPA)
-        href = f"#/note/{target}"
+        href = f"#/note/{encode_path_for_url(target)}"
         if heading:
             # Convert heading to anchor format - use query param to avoid hash conflict
             anchor = heading.lower().replace(" ", "-")
@@ -79,7 +91,7 @@ class EmbedInlineProcessor(InlineProcessor):
         if is_image:
             # Image embed
             el = ET.Element("img")
-            el.set("src", f"/api/vault/attachment/{target}")
+            el.set("src", f"/api/vault/attachment/{encode_path_for_url(target)}")
             el.set("alt", alias or target)
             el.set("class", "embedded-image max-w-full h-auto rounded-lg")
             el.set("loading", "lazy")
@@ -93,7 +105,7 @@ class EmbedInlineProcessor(InlineProcessor):
 
             # Add a link to the embedded note (use hash-based routing for SPA)
             inner = ET.SubElement(el, "a")
-            inner.set("href", f"#/note/{target}")
+            inner.set("href", f"#/note/{encode_path_for_url(target)}")
             inner.set("class", "internal-link font-medium")
             inner.text = f"📄 {alias or target}"
             if heading:
@@ -156,7 +168,7 @@ class EmbedPreprocessor(Preprocessor):
         if is_image:
             # Image embed
             alt = html.escape(alias or target)
-            return f'<img src="/api/vault/attachment/{html.escape(target)}" alt="{alt}" class="embedded-image max-w-full h-auto rounded-lg" loading="lazy">'
+            return f'<img src="/api/vault/attachment/{encode_path_for_url(target)}" alt="{alt}" class="embedded-image max-w-full h-auto rounded-lg" loading="lazy">'
         else:
             # Note embed
             display = html.escape(alias or target)
@@ -167,7 +179,7 @@ class EmbedPreprocessor(Preprocessor):
                 heading_attr = ""
 
             return f'''<div class="embedded-note border-l-4 border-accent-400 pl-4 my-4 bg-obsidian-100 dark:bg-obsidian-800 rounded-r-lg p-4" data-embed-target="{html.escape(target)}"{heading_attr}>
-<a href="#/note/{html.escape(target)}" class="internal-link font-medium">📄 {display}</a>
+<a href="#/note/{encode_path_for_url(target)}" class="internal-link font-medium">📄 {display}</a>
 </div>'''
 
 

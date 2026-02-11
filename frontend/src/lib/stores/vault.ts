@@ -23,6 +23,23 @@ interface VaultState {
 	vaultReady: boolean;
 }
 
+const STORAGE_KEY = 'activeVaultId';
+const browser = typeof window !== 'undefined';
+
+function getStoredVaultId(): string | null {
+	if (!browser) return null;
+	return localStorage.getItem(STORAGE_KEY);
+}
+
+function setStoredVaultId(vaultId: string | null): void {
+	if (!browser) return;
+	if (vaultId) {
+		localStorage.setItem(STORAGE_KEY, vaultId);
+	} else {
+		localStorage.removeItem(STORAGE_KEY);
+	}
+}
+
 interface CachedNote {
 	note: NoteResponse;
 	cachedAt: number;
@@ -50,28 +67,56 @@ function createVaultStore() {
 	const store = writable<VaultState>(initialState);
 	const { subscribe, set, update } = store;
 
+	let loadVaultsInProgress = false;
+
 	return {
 		subscribe,
 
 		/**
 		 * Load list of available vaults.
+		 * Deduplicates concurrent calls to prevent race conditions.
 		 */
 		async loadVaults(): Promise<void> {
+			if (loadVaultsInProgress) return;
+			loadVaultsInProgress = true;
+
 			update((state) => ({ ...state, loading: true, error: null }));
 
 			try {
 				const response = await vaultApi.list();
+				let activeVault = response.active_vault;
+
+				// Check localStorage for a stored vault preference
+				const storedVaultId = getStoredVaultId();
+				if (
+					storedVaultId &&
+					storedVaultId !== activeVault &&
+					response.vaults.some((v) => v.id === storedVaultId)
+				) {
+					// Re-sync backend to match the user's stored preference
+					try {
+						await vaultApi.select(storedVaultId);
+						activeVault = storedVaultId;
+					} catch {
+						// If re-select fails, fall back to what the backend returned
+						setStoredVaultId(activeVault);
+					}
+				} else if (activeVault) {
+					// Persist whatever the backend returned
+					setStoredVaultId(activeVault);
+				}
+
 				update((state) => ({
 					...state,
 					vaults: response.vaults,
-					activeVaultId: response.active_vault,
+					activeVaultId: activeVault,
 					defaultVaultId: response.default_vault,
-					vaultReady: !!response.active_vault,
+					vaultReady: !!activeVault,
 					loading: false
 				}));
 
 				// Load file tree if we have an active vault
-				if (response.active_vault) {
+				if (activeVault) {
 					await this.loadFileTree();
 				}
 			} catch (e) {
@@ -82,6 +127,8 @@ function createVaultStore() {
 					vaultReady: false,
 					error: error.detail || 'Failed to load vaults'
 				}));
+			} finally {
+				loadVaultsInProgress = false;
 			}
 		},
 
@@ -107,6 +154,9 @@ function createVaultStore() {
 				// Load file tree for new vault BEFORE updating state
 				const treeResponse = await vaultApi.getTree();
 				
+				// Persist vault selection to localStorage
+				setStoredVaultId(vaultId);
+
 				update((state) => ({
 					...state,
 					activeVaultId: vaultId,
@@ -225,6 +275,7 @@ function createVaultStore() {
 		 */
 		reset(): void {
 			this.clearNoteCache();
+			setStoredVaultId(null);
 			set(initialState);
 		},
 
@@ -296,6 +347,10 @@ function createVaultStore() {
 
 				// Reload vaults list
 				const response = await vaultApi.list();
+
+				// Update stored vault after deletion
+				setStoredVaultId(response.active_vault);
+
 				update((state) => ({
 					...state,
 					vaults: response.vaults,

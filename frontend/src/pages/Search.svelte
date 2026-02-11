@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { querystring } from 'svelte-spa-router';
-	import { searchApi, type SearchResult } from '../lib/api';
+	import { encodePathForUrl, searchApi, type SearchResult } from '../lib/api';
 
 	let results = $state<SearchResult[]>([]);
 	let loading = $state(false);
@@ -119,7 +119,7 @@
 		<div class="space-y-4">
 			{#each results as result}
 				<a
-					href="#/note/{result.path}"
+					href="#/note/{encodePathForUrl(result.path)}"
 					class="block rounded-xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:bg-obsidian-800"
 				>
 					<div class="flex items-start justify-between">

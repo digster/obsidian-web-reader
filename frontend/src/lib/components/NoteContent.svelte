@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { NoteResponse } from '../api';
+	import { encodePathForUrl, type NoteResponse } from '../api';
 
 	interface Props {
 		note: NoteResponse;
@@ -145,7 +145,7 @@
 				{#each note.backlinks as backlink}
 					<li>
 					<a
-						href="#/note/{backlink.path}"
+						href="#/note/{encodePathForUrl(backlink.path)}"
 						class="flex items-center gap-2 text-accent-600 hover:underline dark:text-accent-400"
 					>
 							<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

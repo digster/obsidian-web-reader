@@ -159,7 +159,7 @@ export const authApi = {
  * Note: We use encodeURIComponent which does NOT encode: A-Z a-z 0-9 - _ . ! ~ * ' ( )
  * Dashes are kept as-is since they're URL-safe, but we encode other special chars.
  */
-function encodePathForUrl(path: string): string {
+export function encodePathForUrl(path: string): string {
 	return path
 		.split('/')
 		.map((segment) => encodeURIComponent(segment))

@@ -33,7 +33,7 @@ class TestMarkdownRendering:
         content = "Link to [[Another Note]]."
         html = render_markdown(content)
 
-        assert 'href="#/note/Another Note"' in html
+        assert 'href="#/note/Another%20Note"' in html
         assert 'class="internal-link"' in html
         assert "Another Note" in html
 
@@ -42,7 +42,7 @@ class TestMarkdownRendering:
         content = "Link to [[Another Note|Display Text]]."
         html = render_markdown(content)
 
-        assert 'href="#/note/Another Note"' in html
+        assert 'href="#/note/Another%20Note"' in html
         assert "Display Text" in html
 
     def test_wiki_links_with_heading(self):
@@ -51,6 +51,31 @@ class TestMarkdownRendering:
         html = render_markdown(content)
 
         assert 'href="#/note/Note?heading=section"' in html
+
+    def test_wiki_links_special_characters(self):
+        """Test wiki links with special characters are URL-encoded."""
+        content = "Link to [[RL Technique (Advanced)]] and [[Notes & Ideas]]."
+        html = render_markdown(content)
+
+        assert 'href="#/note/RL%20Technique%20%28Advanced%29"' in html
+        assert 'href="#/note/Notes%20%26%20Ideas"' in html
+        # Display text should remain unencoded
+        assert "RL Technique (Advanced)" in html
+        assert "Notes &amp; Ideas" in html
+
+    def test_embed_paths_url_encoded(self):
+        """Test that embed paths with spaces are URL-encoded."""
+        content = "![[My Image File.png]]"
+        html = render_markdown(content)
+
+        assert 'src="/api/vault/attachment/My%20Image%20File.png"' in html
+
+    def test_note_embed_paths_url_encoded(self):
+        """Test that note embed hrefs with spaces are URL-encoded."""
+        content = "![[My Embedded Note]]"
+        html = render_markdown(content)
+
+        assert 'href="#/note/My%20Embedded%20Note"' in html
 
     def test_image_embeds(self):
         """Test image embed rendering."""
